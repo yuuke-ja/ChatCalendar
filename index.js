@@ -17,7 +17,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.use(express.urlencoded({ extended: true }));  //formのpostを受け取るためのもの
 app.use(session({
-  secret: ProcessingInstruction.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true
 }));
@@ -342,7 +342,7 @@ app.get('/get-chat-date',async (req,res)=>{
   }
 
 })
-const port = 8000;
+const port = process.env.PORT || 8000;
 app.listen(port, () => {
   console.log(`Listening on ${port}`);
 });
