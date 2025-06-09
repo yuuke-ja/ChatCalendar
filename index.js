@@ -48,6 +48,9 @@ function normalizeDate(dateStr) {
   const day = parts[2].padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+app.get('/',(req,res)=>{
+  res.redirect('/login');
+})
 app.get('/newuser',(req,res)=>{
   res.render('newuser')
 });
