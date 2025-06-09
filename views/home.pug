@@ -1,0 +1,157 @@
+doctype html
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    title Home
+    style.
+      .logout {
+        position: relative;
+        top: 0px;
+        left: 1200px;
+        background-color:  #f4f3f3;
+        border: none;
+        text-align: center;
+        padding: 5px 10px;
+        width: auto;
+        height: auto;
+        cursor: pointer;
+      }
+
+
+      .logoutcontent {
+        width: 32px;
+        height: 32px;
+        display: block;
+        margin: 0 auto;
+      }
+      .flex{
+        display:flex;/*親要素にはこれ*/
+        justify-content:center;
+        gap:90px;
+        margin-top:90px;
+      }
+      .private{
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        padding: 20px;
+        max-width: 300px;
+        text-align: center;
+        
+      }
+
+      .private h1 {
+        
+        width: 300px;   
+      }
+      
+      .person{
+        display:block;
+        margin:20px auto;
+      }
+
+       
+      .privatebutton {
+        border: none;
+        width: 100%;                 /* ← 幅いっぱい（paddingと合わせて中央） */
+        max-width: 200px;            /* ← 最大幅制限して左右余白を作る */
+        height: 60px;
+        padding: 10px 15px;
+        margin:40px auto 0 auto;
+        display: block;
+        cursor: pointer;
+        
+        box-sizing: border-box;
+        border-radius:15px;
+        background-color:rgb(23, 242, 198);
+        font-size:20px;
+      }
+      .privatebutton:hover{
+        background-color:rgb(1, 193, 155);;
+        transition: background-color 0.2s;
+
+      }
+      .chat{
+        position: relative; 
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        padding: 20px;               /* ← 内側の余白 */
+        max-width: 300px;
+        text-align: center;          /* ← 中の要素を中央寄せ */
+        
+      }
+      .newchat{
+        border:none;
+        width:100%;
+        max-width:200px;
+        height:60px;
+        margin:0 auto;
+        display:block;
+        cursor:pointer;
+        background-color:rgb(23, 242, 198);
+        box-sizing: border-box;
+        border-radius:15px;
+      }
+      .newchat:hover{
+        background-color:rgb(1, 193, 155);;
+        transition: background-color 0.2s;
+
+      }
+      .enterchat{
+        border:none;
+        width:100%;
+        max-width:200px;
+        height:60px;
+        margin:20px auto 0 auto;
+        display:block;
+        cursor:pointer;
+        background-color:rgb(23, 242, 198);
+        box-sizing: border-box;
+        border-radius:15px;
+      }
+      .enterchat:hover{
+      background-color:rgb(1, 193, 155);;
+      transition: background-color 0.2s;
+      }
+      .header {
+        background-color: #f4f3f3;
+        width: 100%;
+        height: 68px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        opacity: 0.7; 
+      }
+
+      
+
+  body
+    header.header
+      button.logout(onclick="location.href='/logout'")
+          svg(xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f" class="logoutcontent")
+            path(d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z")
+          |ログアウト
+    div.flex
+      div.private
+        h1 PrivateCalendar
+        svg(xmlns="http://www.w3.org/2000/svg", height="90px", viewBox="0 -960 960 960", width="90px", fill="#1f1f1f" class="person")
+          path(d="M480-481q-66 0-108-42t-42-108q0-66 42-108t108-42q66 0 108 42t42 108q0 66-42 108t-108 42ZM160-160v-94q0-38 19-65t49-41q67-30 128.5-45T480-420q62 0 123 15.5t127.92 44.69q31.3 14.13 50.19 40.97Q800-292 800-254v94H160Zm60-60h520v-34q0-16-9.5-30.5T707-306q-64-31-117-42.5T480-360q-57 0-111 11.5T252-306q-14 7-23 21.5t-9 30.5v34Zm260-321q39 0 64.5-25.5T570-631q0-39-25.5-64.5T480-721q-39 0-64.5 25.5T390-631q0 39 25.5 64.5T480-541Zm0-90Zm0 411Z")
+        p こちらのカレンダーは誰にも共有されないプライベートなカレンダーです。予定を管理して良い1日を!
+        
+
+        button.privatebutton(onclick="location.href='/carender'") 入る
+
+      div.chat
+        h1 ChatCalendar
+        svg(xmlns="http://www.w3.org/2000/svg", height="90px", viewBox="0 -960 960 960", width="90px", fill="#1f1f1f" class="person")
+          path(d="M0-240v-53q0-38.57 41.5-62.78Q83-380 150.38-380q12.16 0 23.39.5t22.23 2.15q-8 17.35-12 35.17-4 17.81-4 37.18v65H0Zm240 0v-65q0-32 17.5-58.5T307-410q32-20 76.5-30t96.5-10q53 0 97.5 10t76.5 30q32 20 49 46.5t17 58.5v65H240Zm540 0v-65q0-19.86-3.5-37.43T765-377.27q11-1.73 22.17-2.23 11.17-.5 22.83-.5 67.5 0 108.75 23.77T960-293v53H780Zm-480-60h360v-6q0-37-50.5-60.5T480-390q-79 0-129.5 23.5T300-305v5ZM149.57-410q-28.57 0-49.07-20.56Q80-451.13 80-480q0-29 20.56-49.5Q121.13-550 150-550q29 0 49.5 20.5t20.5 49.93q0 28.57-20.5 49.07T149.57-410Zm660 0q-28.57 0-49.07-20.56Q740-451.13 740-480q0-29 20.56-49.5Q781.13-550 810-550q29 0 49.5 20.5t20.5 49.93q0 28.57-20.5 49.07T809.57-410ZM480-480q-50 0-85-35t-35-85q0-51 35-85.5t85-34.5q51 0 85.5 34.5T600-600q0 50-34.5 85T480-480Zm.35-60Q506-540 523-557.35t17-43Q540-626 522.85-643t-42.5-17q-25.35 0-42.85 17.15t-17.5 42.5q0 25.35 17.35 42.85t43 17.5ZM480-300Zm0-300Z")
+        p こちらのカレンダーはチャット形式でみんなで予定を共有したり、その日付けにあった会話ができるようになっています。仲間と予定を管理して良い1日を!
+        
+
+        button.newchat(onclick="location.href='/newchat'") 新規チャット作成
+        button.enterchat(onclick="location.href='/enterchat'") チャットに参加する。

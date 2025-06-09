@@ -1,0 +1,70 @@
+doctype html
+html(lang='ja')
+  head
+    title ログイン
+    style.
+      * {
+        box-sizing: border-box;
+        }
+      .wrapper {
+        position: relative;
+        width: 300px;
+        top:60px;
+        margin-left: auto;
+        margin-right: 340px;
+        
+      }
+      .wrapper button {
+        margin-top: 20px;
+        background-color:rgb(23, 242, 198);
+        color: white;
+        width: 300px;         /* 幅を.wrapperに合わせる（親要素いっぱい） */
+        height: 40px;         /* 高さを固定（例：40px） */
+        font-size: 16px;      /* 文字のサイズ */
+        border: none;         /* 枠線なしにする */
+        border-radius: 5px;   /* 角を丸くする */
+        cursor: pointer;      /* カーソルをポインターに */
+      }
+      .wrapper input{
+        width: 300px;
+        height:30px
+      }
+      
+      .left-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100vh;        /* 高さは画面の高さいっぱい */
+        width: auto;          /* 横幅は自動（元の比率を保つ） */
+        object-fit: contain;  /* 比率を保ったまま全体を表示 */
+        display: block;
+        z-index: 0;
+      }
+      .line{
+        border-top:1px solid#000;
+        width:300px;
+        margin-top:40px;
+        margin-bottom:20px;
+      }
+      a{
+        color:black;
+        text-decoration: none;
+      }
+  body
+    img.left-image(src="/images/login-image.png" alt="ログイン画像")
+    .wrapper
+      h1 ログイン
+      
+      form(method="POST" action="/login")
+        label(for="username") ユーザネーム
+        br
+        input(type='text' name="username" required)
+        br
+        label(for="password") パスワード
+        br
+        input(type='text' name="password" required)
+        br
+        button(type="submit") ログイン
+        div(class="line")
+      p
+        a(href="/newuser") 新規登録はこちら

@@ -1,0 +1,220 @@
+
+table {
+  margin: auto;
+  position: static;
+  font-family: 'Libre Baskerville';
+}
+
+td span.today{
+  color: rgb(13, 176, 46)!important;
+}
+
+section{
+  margin-bottom: 80px;
+}
+
+h1{
+  text-align: center;
+  position: static;
+  font-size:70px;
+  font-family: 'Merriweather';
+}
+table{
+  font-size:30px;
+}
+
+table{
+  border-spacing:0;
+  border-collapse:collapse
+}
+td{
+  padding: 11px;
+  text-align:center;
+  width: 100px;
+  }
+
+td:first-child{
+  color:red;
+}
+
+td:last-child{
+  color:blue;
+}
+
+.kako{
+  color: #ccc !important;
+}
+
+
+
+td span {
+  display: inline-block;
+  width: 45%;
+  height: 100%;
+  line-height: 40px;
+  transition: transform 0.15s ease;
+  border-radius: 6px;
+}
+
+td:hover span {
+  transform: scale(1.6);
+  background-color: #f6f204a2; 
+}
+
+#chatmodal {
+  display: none;
+  position: fixed;
+  top: 10%;
+  left: 74%;
+  background: #ffffff !important;;
+  padding: 20px;
+  border: 2px rgb(23, 242, 198);
+  border-radius: 11px;
+  box-shadow: 0 0 20px rgb(23, 242, 198);
+  z-index: 1000;
+  width: 300px;
+  height: 500px;
+  
+}
+#chatwrite{
+  height:400px;/*表示される高さ*/
+  overflow-y: auto;
+  
+}
+
+.myuser .content{
+  
+  border:1px solid rgb(23, 242, 198) ;
+  background-color:  rgb(23, 242, 198);
+  border-radius: 30px;
+  padding:10px;
+  max-width: 200px;
+  display: inline-flex;
+  text-align: left;
+}
+.myuser {
+  text-align: right;  /* 親に右寄せをかける */
+  margin-right:20px;
+}
+.myuser .user{
+  margin-bottom:-15px;
+  margin-right:8px;
+}
+.othersuser .content{
+  border:1px solid #dddddd;
+  background-color: #eaeaea;
+  border-radius: 30px;
+  padding:10px;
+  display: inline-flex;
+  max-width: 200px;
+}
+.othersuser .user{
+  /*本文との間の余白を少し詰めて、視覚的にまとまり感を出す */
+
+  margin-bottom:-15px;
+  margin-left:8px;
+}
+.chat{
+  background-color: #f6f3f3;
+  border-color:#ccc;
+  border-radius:10px;
+  padding-top: 10px;   /* 上からの距離 */
+  padding-left: 10px;
+  
+}
+#chatcalendar{
+  width:100%;
+  transition:all 0.3s ;
+}
+#chatcalendar.small-chatcalendar{
+  width:60% ;
+  margin-left:2px ;
+}
+#chatcalendar.restore{
+  width:100%;
+}
+.close{
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: -20px;
+  right: -20px;
+  width: 50px;
+  height: 50px;
+  color: #fff;
+  background: rgb(23, 242, 198);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  font-size: 20px;
+}
+
+a{
+  color:black;
+  text-decoration:none;
+  
+}
+.home{
+  position: relative;
+  top:0px ;
+  left:1100px;
+  background-color:#f4f3f3;
+  border: none;
+  cursor:pointer;
+  width:auto;
+  height:auto;
+ }
+  .size-6{
+    width: 32px;
+    height: 32px;
+    display:block;/* 新しい行から始まり、幅いっぱいに広がる */
+    margin: auto;
+    
+  }
+  .logout {
+    position: relative;
+    top: 0px;
+    left: 1200px;
+    background-color: #f4f3f3;
+    border: none;
+    text-align: center; 
+    padding: 5px 10px; 
+    width: auto; 
+    height: auto; 
+    cursor: pointer; 
+  }
+  .logoutcontent { 
+    width: 32px; 
+    height: 32px; 
+    
+    display: block; 
+    margin: 0 auto; 
+  }
+  .prev{
+    background-color: #f4f3f3;
+    border:none;
+    top:0px;
+    width: 60px;
+    height: 25px;
+  }
+  .next{
+    background-color: #f4f3f3;
+    border:none;
+    top:0px;
+    width: 60px;
+    height: 25px;
+  }
+  .header {
+    background-color: #f4f3f3;
+    width: 100%;
+    height: 68px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    opacity: 0.7; 
+  }
+
+  
