@@ -23,7 +23,8 @@ model User{
 
 
 model Post {
-  createdAt DateTime @id @db.Timestamptz(6) @default(now())
+  id Int @id @default(autoincrement())
+  createdAt DateTime 
   content   String
   postedBy  String   @db.VarChar(255)
   userId    Int

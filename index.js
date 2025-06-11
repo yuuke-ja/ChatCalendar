@@ -187,16 +187,29 @@ app.post('/save-memo', async (req, res) => {
     }
     console.log(`受信した日付: ${date}, メモ: ${memo}`);
 
-    await prisma.Post.upsert({
-      where: { createdAt: datestamp },
-      update: { content: memo },
-      create: {
-        content: memo,
-        userId:user.id,
-        postedBy: username,
+    const Post = await prisma.post.findFirst({
+      where: {
+        userId: user.id,
         createdAt: datestamp,
       },
     });
+    
+    if (Post) {
+      await prisma.post.update({
+        where: { id: Post.id },
+        data: { content: memo },
+      });
+    } else {
+      await prisma.post.create({
+        data: {
+          content: memo,
+          userId: user.id,
+          postedBy: username,
+          createdAt: datestamp,
+        },
+      });
+    }
+    
     res.status(200).send('保存成功');
   } catch (error) {
     console.error('DBエラー:', error);
