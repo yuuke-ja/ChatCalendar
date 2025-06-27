@@ -2,6 +2,7 @@ doctype html
 html(lang="ja")
   head
     meta(charset="UTF-8")
+    <script src="/socket.io/socket.io.js"></script>
     title Home
     style.
       .logout {
@@ -69,7 +70,7 @@ html(lang="ja")
       }
       .privatebutton:hover{
         background-color:rgb(1, 193, 155);;
-        transition: background-color 0.2s;
+        transition:background-color 0.2s;
 
       }
       .chat{
@@ -117,6 +118,8 @@ html(lang="ja")
       transition: background-color 0.2s;
       }
       .header {
+        display:flex;
+        align-items: center;
         background-color: #f4f3f3;
         width: 100%;
         height: 68px;
@@ -127,6 +130,89 @@ html(lang="ja")
         z-index: 999;
         opacity: 0.7; 
       }
+      .buttonopen{
+        position: relative;
+        top:0px;
+        border:none;
+        background-color:  #f4f3f3;
+        text-align: center;
+        padding: 5px 10px;
+        width: auto;
+        height: auto;
+        cursor: pointer;
+      }
+      .friendcontent{
+        display:flex;/*親要素にはこれ*/
+        justify-content:center;
+        gap:90px;
+        margin: 0 auto;
+        
+      }
+      #friendmodal {
+        position: relative;
+        display: none;
+        position: fixed;
+        top: 68px;
+        left: 0%;
+        background: #ffffff !important;;
+        padding: 20px;
+        border: 1px solid rgb(0, 0, 0);
+        border-radius: 11px;
+        box-shadow: 0 0 20px rgba(128, 128, 128, 0.27);
+        z-index: 1000;
+        width: 300px;
+        height: 100%;
+        transform: translateX(-200%); /* 画面外の左に隠す */
+        transition: transform 0.3s ease;
+        display: block; /* display:noneはJSで制御 */
+        }
+        #friendmodal.show{
+          transform: translateX(0%)
+        }
+        
+      #friendlist{
+        height:350px;/*表示される高さ*/
+        overflow-y: auto;
+        }
+        #text{
+          background-color: #f6f3f3;
+          border-color:#ccc;
+          border-radius:10px;
+          margin-top:10px;
+          height:30px;
+          width:250px;
+          padding-left: 10px;
+          font-size:20px;
+           line-height: 30px;
+          }
+          #friendlist p{
+            background-color:rgba(0,0,0,0.05);
+            text-align: left; 
+            
+          }
+        
+        .close{
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          top: -20px;
+          right: -20px;
+          width: 50px;
+          height: 50px;
+          color: #fff;
+          background: rgb(23, 242, 198);
+          border-radius: 50%;
+          cursor: pointer;
+          border: none;
+          font-size: 20px;
+          }
+        .friend{
+          padding: 10px 
+        }
+        .newfriend{
+          padding: 10px 
+        }
 
       
 
@@ -136,6 +222,10 @@ html(lang="ja")
           svg(xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f" class="logoutcontent")
             path(d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z")
           |ログアウト
+      button#buttonopen.buttonopen
+          svg(xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#1f1f1f" class="friendcontent")
+            path(d="M475-146.67q4.67 0 10.33-2.33 5.67-2.33 9-5.67l334-334.66Q841-502 847.17-518.11q6.16-16.11 6.16-32.22 0-16.67-6.16-32.84-6.17-16.16-18.84-28.5L651.67-788.33q-12.34-12.67-28.5-18.84-16.17-6.16-32.84-6.16-16.11 0-32.22 6.16Q542-801 529.33-788.33l-15.66 15.66L592.33-693Q606-679 615-660.67q9 18.34 9 39.67 0 39.33-29.17 68.17Q565.67-524 526.33-524q-23.33 0-40.5-7.33-17.16-7.34-30.95-21.23L381-626 202-447q-4.33 4.33-6.17 9.18-1.83 4.86-1.83 10.4 0 11.09 7.67 18.92 7.66 7.83 18.77 7.83 5.56 0 10.56-2.66 5-2.67 8.33-6l137.34-137.34L423.33-500 287-363.33q-4.33 4.33-6.17 9.5-1.83 5.16-1.83 10.5 0 10.66 8 18.66t18.67 8q5.33 0 10.33-2.33t8.33-5.67l137.34-137L508.33-415 372-278.33q-3.67 3.33-5.83 8.89-2.17 5.55-2.17 11.11 0 10.66 8 18.66t18.67 8q5.33 0 9.83-1.83t8.83-6.17l137.34-137L593.33-330 456-192.67q-4.33 4.34-6.17 9.5Q448-178 448-173.33q0 12 7.5 19.33 7.5 7.33 19.5 7.33ZM474.71-80q-34.38 0-61.21-24.5t-31.83-60.91q-34-4.92-57-27.92t-28-57q-34-5-56.5-28.5t-27.5-56.5q-37.34-5-61.34-31t-24-62q0-18 6.99-35.54 6.98-17.53 20.01-30.8L381-721l117 117q6 6.33 13.56 9.83 7.55 3.5 15.11 3.5 11.66 0 21.33-9.5 9.67-9.5 9.67-21.27 0-5.23-2.84-11.56-2.83-6.33-9.16-12.33l-143-143q-12.34-12.67-28.5-18.84-16.17-6.16-32.84-6.16-16.11 0-32.22 6.16Q293-801 280.37-788.43L132-639.67q-12.33 12.34-18 26.67-5.67 14.33-7 31.33t5 33.5q6.33 16.5 16.33 30.17l-48 48q-19-22.33-30-52.17-11-29.83-10.33-60.5.67-29.33 12.33-56.5Q64-666.33 85-687.33L232.67-835q22.66-22.33 51.03-33.33 28.36-11 58.16-11 29.81 0 57.97 11 28.17 11 50.5 33.33L466-819.33 481.67-835q22.66-22.33 51.03-33.33 28.36-11 58.16-11 29.81 0 57.97 11 28.17 11 50.5 33.33L875-659.33q22.33 22.33 33.67 51.02Q920-579.62 920-549.98q0 29.65-11.33 57.81Q897.33-464 875-441.67L541-108q-13.33 13.33-30.52 20.67Q493.29-80 474.71-80Zm-98.38-550.67Z")
+          | フレンド
     div.flex
       div.private
         h1 PrivateCalendar
@@ -151,7 +241,75 @@ html(lang="ja")
         svg(xmlns="http://www.w3.org/2000/svg", height="90px", viewBox="0 -960 960 960", width="90px", fill="#1f1f1f" class="person")
           path(d="M0-240v-53q0-38.57 41.5-62.78Q83-380 150.38-380q12.16 0 23.39.5t22.23 2.15q-8 17.35-12 35.17-4 17.81-4 37.18v65H0Zm240 0v-65q0-32 17.5-58.5T307-410q32-20 76.5-30t96.5-10q53 0 97.5 10t76.5 30q32 20 49 46.5t17 58.5v65H240Zm540 0v-65q0-19.86-3.5-37.43T765-377.27q11-1.73 22.17-2.23 11.17-.5 22.83-.5 67.5 0 108.75 23.77T960-293v53H780Zm-480-60h360v-6q0-37-50.5-60.5T480-390q-79 0-129.5 23.5T300-305v5ZM149.57-410q-28.57 0-49.07-20.56Q80-451.13 80-480q0-29 20.56-49.5Q121.13-550 150-550q29 0 49.5 20.5t20.5 49.93q0 28.57-20.5 49.07T149.57-410Zm660 0q-28.57 0-49.07-20.56Q740-451.13 740-480q0-29 20.56-49.5Q781.13-550 810-550q29 0 49.5 20.5t20.5 49.93q0 28.57-20.5 49.07T809.57-410ZM480-480q-50 0-85-35t-35-85q0-51 35-85.5t85-34.5q51 0 85.5 34.5T600-600q0 50-34.5 85T480-480Zm.35-60Q506-540 523-557.35t17-43Q540-626 522.85-643t-42.5-17q-25.35 0-42.85 17.15t-17.5 42.5q0 25.35 17.35 42.85t43 17.5ZM480-300Zm0-300Z")
         p こちらのカレンダーはチャット形式でみんなで予定を共有したり、その日付けにあった会話ができるようになっています。仲間と予定を管理して良い1日を!
-        
-
         button.newchat(onclick="location.href='/newchat'") 新規チャット作成
         button.enterchat(onclick="location.href='/enterchat'") チャットに参加する。
+        
+      #friendmodal
+        button#close.close  ✕
+        h1 Friend
+        textarea#text.text(rows="1", cols="40", wrap="off")
+        button#save 追加
+        
+        div#friendlist
+          each friendname in friendlist 
+            p.p #{friendname}
+        
+        
+        
+   
+        
+      script.
+        const socket = io();
+        const modal = document.getElementById('friendmodal');
+        const openmodal = document.getElementById('buttonopen');
+        const closemodal = document.getElementById('close');
+        const textarea = document.getElementById('text');
+        textarea.addEventListener('input', () => {
+        const lines = textarea.value.split('\n');
+        if (lines.length > 1) {  
+         
+        textarea.value = lines.slice(0, 1).join('\n');
+        }
+          });
+
+        openmodal.addEventListener('click', Openmodal);
+        closemodal.addEventListener('click', Closemodal);
+
+        async function Openmodal() {
+        modal.style.display = 'block';
+        setTimeout(() => {
+        modal.classList.add('show');
+        },10);
+        }
+          
+          // バツ印がクリックされた時
+          closemodal.addEventListener('click', Closemodal);
+          function Closemodal() {
+          modal.classList.remove('show');
+          setTimeout(() => {
+          modal.style.display = 'none';
+          }, 300);
+          }
+          
+        document.getElementById("save").addEventListener("click", async () => {
+          console.log('送信ボタンがクリックされました！');
+          const friendsave = document.getElementById('text').value;
+          text=''
+          
+
+          socket.emit('friend',{
+            friendlist:friendsave
+            })
+
+              });
+          socket.on('newfriend',(data)=>{
+            const friendname=data.friendname
+            const friends= document.getElementById('friendlist');
+            
+            
+            friends.innerHTML+=`<div class="newfriend">${friendname}</div>`
+            
+          })
+          
+
+

@@ -1,4 +1,11 @@
-
+.title{
+  position: absolute;
+  top: 50%;              /* 縦中央 */
+  left: 50%;             /* 横中央 */
+  transform: translate(-50%, -50%);
+  font-size:40px;
+  font-weight: bold;
+}
 table {
   margin: auto;
   position: static;
@@ -44,19 +51,27 @@ td:last-child{
 .kako{
   color: #ccc !important;
 }
-
+.irotuke span{
+  display: flex;
+  justify-content: center; /* 横中央 */
+  align-items: center;     /* 縦中央 */
+  background-color: rgb(23, 242, 198);
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;  
+}
 
 
 td span {
   display: inline-block;
-  width: 45%;
+  width: 40%;
   height: 100%;
   line-height: 40px;
   transition: transform 0.15s ease;
   border-radius: 6px;
 }
 
-td:hover span {
+td:not(.irotuke):hover span {
   transform: scale(1.6);
   background-color: #f6f204a2; 
 }
@@ -65,23 +80,33 @@ td:hover span {
   display: none;
   position: fixed;
   top: 10%;
-  left: 74%;
-  background: #ffffff !important;;
-  padding: 20px;
-  border: 2px rgb(23, 242, 198);
-  border-radius: 11px;
+  left: 67%;
+  background: linear-gradient(to bottom, rgba(233, 233, 233, 0.199), rgba(172, 172, 172, 0.045));
+  border: 1px solid rgb(23, 242, 198);
   box-shadow: 0 0 20px rgb(23, 242, 198);
   z-index: 1000;
-  width: 300px;
-  height: 500px;
+  width: 350px;
   
+}
+#modal-date{
+  background-color: #f4f3f3;
+  padding:9px;
 }
 #chatwrite{
-  height:400px;/*表示される高さ*/
+  height:500px;/*表示される高さ*/
   overflow-y: auto;
-  
+  padding: 0px;
 }
-
+.myuser,
+.othersuser {
+  margin-top: 10px;
+  margin-bottom:10px;
+}
+.date{
+  font-size:13px;
+  padding:5px;
+  color:rgba(0, 0, 0, 0.563);
+}
 .myuser .content{
   
   border:1px solid rgb(23, 242, 198) ;
@@ -89,38 +114,68 @@ td:hover span {
   border-radius: 30px;
   padding:10px;
   max-width: 200px;
-  display: inline-flex;
+  word-break: break-word;
+  display: inline-block;
+  align-self: flex-end;
   text-align: left;
+  margin-right: 10px;
+  margin-top:0;
 }
 .myuser {
   text-align: right;  /* 親に右寄せをかける */
-  margin-right:20px;
+  margin-right:0px;
 }
 .myuser .user{
-  margin-bottom:-15px;
-  margin-right:8px;
+  display:none;
+  margin-bottom:-17px;
+  margin-right:11px;
 }
 .othersuser .content{
   border:1px solid #dddddd;
   background-color: #eaeaea;
-  border-radius: 30px;
-  padding:10px;
-  display: inline-flex;
+  border-radius: 20px 20px 20px 5px; 
+  padding: 12px 16px;
+  display: inline-block;
   max-width: 200px;
+  margin-left:10px;
 }
 .othersuser .user{
   /*本文との間の余白を少し詰めて、視覚的にまとまり感を出す */
-
+  font-size:13px;
   margin-bottom:-15px;
-  margin-left:8px;
+  margin-left:15px;
+  color: hsl(210, 100%, 40%);/*色相（Hue）、彩度（Saturation）、輝度（Lightness）*/
+}
+.headerchat {
+  position: sticky;   /* モーダル内で固定 */
+  bottom: 0px;            /* モーダルの上端に固定 */
+  background-color: rgba(120, 214, 195, 0.476);
+  height: 50px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  opacity: 0.7;
+  z-index: 10;       /* モーダル内の他要素より前に */
+  
+}
+#save{
+  background-color: transparent;
+  border:none;
+  
 }
 .chat{
+  min-width: 200px;
+  max-width: 100%;
   background-color: #f6f3f3;
-  border-color:#ccc;
-  border-radius:10px;
-  padding-top: 10px;   /* 上からの距離 */
-  padding-left: 10px;
-  
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 5px 10px;
+  resize: none;
+  height: 30px;
+  line-height: 20px;
+  font-size: 14px;
+  flex: 1;
+
 }
 #chatcalendar{
   width:100%;
@@ -155,9 +210,13 @@ a{
   text-decoration:none;
   
 }
+.header{
+  display: flex;
+  align-items: center;
+}
 .home{
   position: relative;
-  top:0px ;
+  
   left:1100px;
   background-color:#f4f3f3;
   border: none;
@@ -174,7 +233,7 @@ a{
   }
   .logout {
     position: relative;
-    top: 0px;
+    
     left: 1200px;
     background-color: #f4f3f3;
     border: none;
@@ -191,14 +250,19 @@ a{
     display: block; 
     margin: 0 auto; 
   }
+  .userinvite{
+    
+    left:0%;
+
+  }
   .prev{
     background-color: #f4f3f3;
     border:none;
-    top:0px;
     width: 60px;
     height: 25px;
   }
   .next{
+    
     background-color: #f4f3f3;
     border:none;
     top:0px;

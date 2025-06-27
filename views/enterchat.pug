@@ -1,28 +1,40 @@
 doctype html
 html(lang='ja')
+  meta(charset="UTF-8")
   head
     title チャット参加
     style.
       * {
         box-sizing: border-box;
         }
+      .t{
+        text-align:center;
+      }
+      .t h1{
+        display: inline-block;
+        margin:5px auto auto auto;
+        }
       .wrapper {
-        position: relative;
+        position:relative; 
+        height:400px;
+        overflow-y: auto;
         width: 300px;
-        top:60px;
         margin-left: auto;
-        margin-right: 340px;
-        
+        font-weight:normal;
+        font-size:16px;
+        margin:20px auto ;
       }
       .wrapper button {
-        margin-top: 20px;
+        margin-top: -10px;
+        margin-bottom:20px;
         background-color:rgb(23, 242, 198);
         color: white;
-        width: 300px;         
+        width: 200px;         
         height: 40px;         
         font-size: 16px;      
         border: none;         
         cursor: pointer;      
+        border-radius: 20px;
       }
        .home{
         position: relative;
@@ -37,24 +49,12 @@ html(lang='ja')
           height: 32px;
           
         }
-        
        
-      
       .wrapper input{
         width: 300px;
         height:30px
       }
-      
-      .left-image {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100vh;        /* 高さは画面の高さいっぱい */
-        width: auto;          /* 横幅は自動（元の比率を保つ） */
-        object-fit: contain;  /* 比率を保ったまま全体を表示 */
-        display: block;
-        z-index: 0;
-      }
+
       .line{
         border-top:1px solid#000;
         width:300px;
@@ -65,27 +65,37 @@ html(lang='ja')
         color:black;
         text-decoration: none;
       }
+      .border{
+        position: relative; 
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        padding: 20px;               /* ← 内側の余白 */
+        max-width: auto;
+        text-align: center;          /* ← 中の要素を中央寄せ */
+        max-height:auto;
+        margin:70px auto;
+      }
+      
   body
-    img.left-image(src="/images/login-image.png" alt="ログイン画像")
-    button.home(onclick="location.href='/home'") 
+    
+      
+      button.home(onclick="location.href='/home'") 
         svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6")
           path(d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z")
           path(d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z")
             br
           |ホーム
-    .wrapper
       
-      h1 参加する
-      form(method="POST" action="/enterchat")
-        label(for="chatid") ID
-        br
-        input(type='text' name="chatid" required)
-        br
-        label(for="password") パスワード
-        br
-        input(type='text' name="password" required)
-        br
-        button(type="submit") ログイン
-        div(class="line")
-      p
-        a(href="/newchat") 新規チャット作成はこちら
+      .t
+        h1 参加する
+          div.border
+            .wrapper
+              each chatsid in chatlist
+                form(method="POST" action="/sessionchat")
+                  p #{chatsid.chatid} 
+                  input(type="hidden" name="chatroomid" value =chatsid.id)
+                  button(type="submit") 閲覧
+                
+      

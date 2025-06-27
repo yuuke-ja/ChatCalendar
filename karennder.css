@@ -123,7 +123,7 @@ a{
     background-color: #f4f3f3;
     border: none;
     /* 以下の3行が重要です！ */
-    
+
     text-align: center; /* ★ボタンの中のコンテンツを中央揃えにする */
     padding: 5px 10px; /* ★ボタンの上下左右の余白を調整する */
     width: auto; /* ★ボタンの幅をコンテンツに合わせて自動調整する */
@@ -153,6 +153,8 @@ a{
   }
   .header {
     background-color: #f4f3f3;
+    display: flex;
+    align-items: center;
     width: 100%;
     height: 68px;
     position: fixed;
@@ -173,7 +175,7 @@ a{
       height: auto;
     }
     .header {
-      display: flex;
+      
       justify-content: space-between;
       align-items: center;
       padding: 0 10px;

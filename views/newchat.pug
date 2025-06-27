@@ -53,14 +53,8 @@ html(lang='ja')
     h1 新規チャット作成
     
     form(method="POST" action="/newchat")
-      label(for="chatid") ID
+      label(for="chatid") チャット名
       br
-      input(type='text' name="chatid" required)
-      br
-      label(for="password") パスワード
-      br
-      input(type='text' name="password" required)
-      br
+      input(type="text" name="chatid" required)
       button(type="submit") 作成
-    p
-      a(href="/enterchat") チャットに参加する
+      

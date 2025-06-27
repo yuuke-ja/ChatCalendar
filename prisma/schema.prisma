@@ -13,37 +13,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User{
-  id Int @id @default(autoincrement())
-  username String @unique
-  password String
-  posts Post[]
-
+model User {
+  id         Int          @id @default(autoincrement())
+  username   String       @unique
+  password   String
+  posts      Post[]
+  chatmember Chatmember[]
+  friends1   Friend[]     @relation("User1")
+  friends2   Friend[]     @relation("User2")
 }
 
+model Friend {
+  user1   User @relation("User1", fields: [user1Id], references: [id])
+  user1Id Int
+  user2   User @relation("User2", fields: [user2Id], references: [id])
+  user2Id Int
+
+  @@id([user1Id, user2Id])
+}
 
 model Post {
-  id Int @id @default(autoincrement())
-  createdAt DateTime 
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime
   content   String
   postedBy  String   @db.VarChar(255)
   userId    Int
-  user   User   @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
-model Chatroom{
-  id Int @id @default(autoincrement())
-  chatid String @unique
-  password String
+model Chatroom {
+  id           String        @id @default(uuid())
+  chatid       String
+  chatmember   Chatmember[]
   chatmessages Chatmessage[]
 }
-model Chatmessage{
-  id Int @id @default(autoincrement())
-  content String
-  date DateTime
-  createdAt DateTime @default(now())
-  chatId Int
-  postedBy String
-  chatroom Chatroom @relation(fields: [chatId], references: [id])
 
+model Chatmember {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
+  chatroomId String
+}
+
+model Chatmessage {
+  id         Int      @id @default(autoincrement())
+  content    String
+  date       DateTime
+  createdAt  DateTime @default(now())
+  chatroomId String
+  postedBy   String
+  chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
 }
