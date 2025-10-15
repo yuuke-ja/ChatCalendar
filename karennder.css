@@ -90,11 +90,7 @@ td:hover span {
   font-size: 20px;
 }
 
-button {
-    color: rgb(0, 0, 0);
-    width: 60px;
-    height: 25px;
-}
+
 a{
   color:black;
   text-decoration:none;
@@ -152,18 +148,100 @@ a{
     height: 25px;
   }
   .header {
-    background-color: #f4f3f3;
-    display: flex;
-    align-items: center;
+    background: rgb(180, 242, 198);
     width: 100%;
-    height: 68px;
+    height: 60px;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 999;
-    opacity: 0.7; 
+  
   }
+  .sidebar {
+    width: 220px;
+    background: rgb(180, 242, 198);
+    border-right: 1px solid #ddd;
+    top: 60px;
+    left: 0;       /* ← 左端に固定 */
+    height: 100vh; /* ← 画面の縦いっぱい */
+    padding: 16px;
+    overflow-y: auto;
+    position: fixed;
+  }
+  .sidebar button {
+    display: block;       /* ← ボタンをブロック要素化して1行占有 */
+    width: 100%;          /* ← サイドバー幅いっぱいに広げる */
+    margin-bottom: 8px;   /* ← ボタン間に余白 */
+    text-align: left;     /* ← 文字を左寄せ（中央が良ければcenterでも可） */
+    padding: 10px 12px;   /* ← クリックしやすいよう余白 */
+    border: none;
+    background: #eaeaea;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  /* 新規チャット作成モーダル */
+#newchatmodal {
+  display: none;                /* 最初は非表示 */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* 画面中央に配置 */
+  background: #ffffff;
+  padding: 20px;
+  border: 2px solid #888;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  z-index: 1001;                /* memomodal より上でもOK */
+  width: 400px;
+  max-width: 90%;
+}
+
+#newchatmodal .newchat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#newchatmodal h1 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+#newchatmodal input {
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+#newchatmodal button[type="submit"] {
+  background: rgb(23, 242, 198);
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#newchatmodal button[type="submit"]:hover {
+  background: rgb(13, 200, 160);
+}
+
+/* モーダルの✖️ボタン */
+.newchatclose {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgb(23, 242, 198);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
   @media (max-width: 600px) {
     .home, .logout {
       position: static;
@@ -181,4 +259,8 @@ a{
       padding: 0 10px;
     }
   }
+
   
+  .sidebar button:hover {
+    background: #dcdcdc; /* ← ホバー時の色 */
+  }

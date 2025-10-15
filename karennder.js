@@ -1,4 +1,33 @@
-
+function chatlist(){
+    fetch('/api/enterchat')
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('chat-list');
+          container.innerHTML = '';
+          data.forEach(chat => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = chat.chatid;
+            btn.dataset.chatid = chat.id;
+            btn.addEventListener('click',async()=>{
+                try{
+                    await fetch('/api/sessionchat',{
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chatroomid: chat.id })
+                    });
+                    window.location.href = '/chatcalendar';
+                }catch (err) {
+                    console.error(err);
+                    alert('チャットカレンダーへの移動に失敗しました');
+                }
+            });
+            container.appendChild(btn);
+            
+        })
+        })
+}
+document.addEventListener('DOMContentLoaded',chatlist);
 const memos = {};
 const date = new Date()
 const thisYear = date.getFullYear()

@@ -6,6 +6,7 @@ const thisMonth = date.getMonth() + 1
 const today = date.getDate()
 const yotei = localStorage.getItem('dateStr');
 const chatroomid=window.chatroomId
+const myEmail=window.myemail
 let year=date.getFullYear()
 let month=date.getMonth()+1
 
@@ -182,45 +183,91 @@ document.addEventListener('click', function (e) {
         
 
         let htmlContent = '';
-        let userclass='';
+        let userclass = '';
+        
         if (chat && Array.isArray(chat) && chat.length > 0) {
           chat.forEach(chatwrite => {
-            if(chatwrite.postedBy===myusername){
-               userclass="myuser";
-            }else{
-               userclass="othersuser";
+            const hasContent = chatwrite.content && chatwrite.content.trim() !== '';
+            const hasImage = chatwrite.imageUrl && chatwrite.imageUrl.trim() !== '';
+        
+            if (!hasContent && !hasImage) {
+              userclass = 'none';
+            } else {
+              userclass = (chatwrite.email === myEmail) ? 'myuser' : 'othersuser';
             }
+        
             htmlContent += `
-            <div class="${userclass}">
-              <p class="date">${new Date(chatwrite.createdAt).toLocaleString()}</p>
-              <p class="user">${chatwrite.postedBy}</p>
-              <p class="content">${chatwrite.content}</p>
+              <div class="${userclass}">
+                <p class="date">${new Date(chatwrite.createdAt).toLocaleString()}</p>
+                <p class="user">${chatwrite.postedBy}</p>
+                ${hasContent ? `<p class="content">${chatwrite.content}</p>` : ''}
+                ${hasImage ? `<img src="${chatwrite.imageUrl}" alt="投稿画像" class="chat-image">` : ''}
               </div>
-              
             `;
           });
-        } else {
+        }
+         else {
           htmlContent = '<p>この日のチャットはありません。</p>';
         }
 
         chatHistoryDiv.innerHTML = htmlContent;
+        console.log('openModal innerHTML set');
+
         requestAnimationFrame(() => {
           chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
             });
         document.getElementById('modal-date').innerText = dateStr;
       };
+      //画像プレビューを表示する処理
+      document.getElementById('image-upload').addEventListener('change', function () {
+        const file = this.files[0];
+        const preview = document.getElementById('preview');
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        } else {
+          preview.src = '';
+          preview.style.display = 'none';
+        }
+      });
+      
 
       document.getElementById("save").addEventListener("click", async () => {
         console.log('送信ボタンがクリックされました！');
         const chatsave = document.getElementById('chat').value;
         const dateStr = document.getElementById('modal-date').innerText;
-
+        const imageInput=document.getElementById('image-upload')
+        let imageUrl = null
+        if (imageInput.files.length > 0) {
+          const file = imageInput.files[0];
+          const formData = new FormData();
+          formData.append('image', file);
+      
+          try {
+            const res = await fetch('/upload-image', {
+              method: 'POST',
+              body: formData
+            });
+            const result = await res.json();
+            imageUrl = result.imageUrl; // サーバーが返す画像URLのキー名に合わせる
+            console.log('画像アップロード成功:', imageUrl);
+          } catch (error) {
+            console.error('画像アップロード失敗', error);
+            alert('画像のアップロードに失敗しました');
+            return; // 送信を中断
+          }
+        }
         socket.emit('savechat',{
           date:dateStr,
-          chat:chatsave
+          chat:chatsave,
+          imageUrl: imageUrl
         });
           alert('送信しました');
-          await window.openModal(dateStr);
+          
           document.getElementById('chat').value = '';
           const td=document.querySelector(`td[data-date="${dateStr}"]`);
       });
@@ -245,8 +292,9 @@ document.addEventListener('click', function (e) {
         
         const chatHistoryDiv = document.getElementById('chatwrite');
         const div = document.createElement('div');
-        if(chat.postedBy===myusername){
+        if(chat.email===myEmail){
         console.log(`${myusername}`)
+        console.log(`yu-na:${chat.postedBy}`)
         userclass="myuser";
         }else{
         userclass="othersuser";
@@ -257,9 +305,12 @@ document.addEventListener('click', function (e) {
             <p>${new Date(chat.createdAt).toLocaleString()}</p>
             <p class="user">${chat.postedBy}</p>
             <p class="content">${chat.content}</p>
-          `;
+            ${chat.imageUrl ? `<img src="${chat.imageUrl}" alt="投稿画像" class="chat-image">`: ''}
+          </div>
+            `;
+          
 
-        chatHistoryDiv.appendChild(div);
+          chatHistoryDiv.insertAdjacentElement('beforeend', div);
         //chatHistoryDiv.appendChild(document.createElement('br'));
 
         // 一番下までスクロール

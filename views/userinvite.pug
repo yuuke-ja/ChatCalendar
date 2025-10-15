@@ -172,22 +172,26 @@ html(lang='ja')
       h1 チャットに招待
       if invite
         p#message ✅ ユーザを招待しました。
-      else if notinvite
+      else if reason === 'already'
+        p#message ⚠️ このユーザはすでにチャットに参加しています。
+      else if reason === 'notfound'
+        p#message ❌ ユーザが見つかりません。
+      else if reason==='error'
         p#message ❌招待に失敗しました
       else
         p#message 招待ステータスなし
     
       form(method="POST" action="/userinvite")
-        label(for="username") ユーザ名
+        label(for="email") ユーザ名
         br
-        input(type="text" name="username" required)
+        input(type="text" name="email" required)
         button(type="submit") 招待
     div.friendlists
       .friendinvite
-        each friendname in friendlist
+        each friend in friendlist
           form( method="POST" action="/userinvite")
-            p #{friendname}
-            input(type="hidden" name="username" value=friendname)
+            p #{friend.username}
+            input(type="hidden" name="email" value=friend.email)
             button.button(type="submit") 招待
     script.
         setTimeout(()=>{

@@ -56,9 +56,9 @@ html(lang='ja')
       h1 ログイン
       
       form(method="POST" action="/login")
-        label(for="username") ユーザネーム
+        label(for="email") メールアドレス
         br
-        input(type='text' name="username" required)
+        input(type='text' name="email" required)
         br
         label(for="password") パスワード
         br
@@ -66,5 +66,7 @@ html(lang='ja')
         br
         button(type="submit") ログイン
         div(class="line")
+        br
+        a(href="/auth/google") Googleでログイン
       p
         a(href="/newuser") 新規登録はこちら

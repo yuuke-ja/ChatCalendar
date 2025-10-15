@@ -7,62 +7,45 @@ html(lang="ja")
     link(rel="stylesheet", href="chatcalendar.css")
     link(href="https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap", rel="stylesheet")
     link(href="https://fonts.googleapis.com/css2?family=Merriweather&display=swap", rel="stylesheet")
+    link(rel="stylesheet", href="/react-calendar/assets/index-Dtn62Xmo.css")
+    script(type="module", src="/react-calendar/assets/index--i89578u.js")
     script(src="/socket.io/socket.io.js")
-    
+
   body
     header.header
       #title.title
-
-
-
-      button.home(onclick="location.href='/home'") 
-          svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6")
-            path(d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z")
-            path(d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z")
-          |ホーム
+      button.home(onclick="location.href='/home'")
+        svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6")
+          path(d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z")
+          path(d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z")
+        | ホーム
 
       button.logout(onclick="location.href='/logout'")
-          svg(xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f" class="logoutcontent")
-            path(d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z")
-            
-          |ログアウト
-      button.userinvite(onclick="location.href='/userinvite'")
-        |招待
-      
+        svg(xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f" class="logoutcontent")
+          path(d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z")
+        | ログアウト
+
+      button.userinvite(onclick="location.href='/userinvite'") 招待
       button#prev.prev(type="button") ◀
       button#next.next(type="button") ▶
-    
-    
-    
-    div#chatcalendar
-  
-    #chatmodal
-      button.close(onclick="closeModal()")  ✕
-      p#modal-date(style="margin: 0; font-weight: bold;")
-      #chatwrite 
-      div.headerchat
-        textarea#chat.chat(rows="3", cols="40")
-        button#save
-          svg( xmlns="http://www.w3.org/2000/svg" height="40px" viewBox="0 -960 960 960" width="40px" fill="#19bde6")
-            path(d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z")
-        
-      
-        
-        
-      
+
+    // Reactアプリのマウントポイント
+    div#root
 
     script.
-      
-      const chatroomId = !{JSON.stringify(chatroomId)};
-      const myusername=!{JSON.stringify(username)};
-      const chatroomname=!{JSON.stringify(chatroomname)};
-      window.chatroomId =chatroomId;
-      window.myusername=myusername;
-      console.log(`${chatroomname}`)
-      console.log(`${chatroomId}`)
-      console.log(`${myusername}`)
-      const intitle=document.getElementById('title')
-      intitle.textContent=chatroomname;
+      fetch('/api/chatcalendar-info')
+      .then(res => res.json())
+      .then(data => {
+        window.chatroomId = data.chatroomId;
+        window.myusername = data.username;
+        window.myemail = data.useremail;
+        window.chatroomname = data.chatroomname;
+
+        document.getElementById('title').textContent = data.chatroomname;
+      })
+      .catch(err => {
+        console.error('チャットカレンダー情報取得失敗', err);
+      });
+
     script(src="chatcalendar.js")
-      
-      
+    script(src="/images/react-calendar.js")

@@ -1,0 +1,42 @@
+doctype html
+html(lang='ja')
+  head
+    title 新規登録
+    style.
+      .wrapper
+        {
+        margin-top:60px;
+        margin-left:auto;
+        margin-right:auto;
+        width: 300px;
+        }
+      
+      .wrapper input{
+        width: 300px;
+        height:30px;
+        }
+      .wrapper button {
+        margin-top:20px;
+        width:300px;
+        height:40px;
+        font-size:16px;
+        border:none;
+        border-radius:5px;
+        cursor:pointer;
+        background-color: #f6f204a2; 
+      }
+      a{
+        color:black;
+        text-decoration:none;
+      }
+  body
+  .wrapper
+    h1 認証コードを入力してください
+  
+    form(method="POST" action="/verify")
+      label(for="code") 認証コード
+      br
+      input(type='text' name="code" required)
+     
+      button(type="submit") 認証
+    

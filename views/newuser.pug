@@ -34,6 +34,9 @@ html(lang='ja')
     h1 新規登録
   
     form(method="POST" action="/newuser")
+      label(for="email") メールアドレス
+      br
+      input(type='text' name="email" required)
       label(for="username") ユーザネーム
       br
       input(type='text' name="username" required)
@@ -43,5 +46,7 @@ html(lang='ja')
       input(type='text' name="password" required)
       br
       button(type="submit") 登録
+      br 
+      a(href="/auth/google") Googleで登録
     p
       a(href="/login") ログインはこちら

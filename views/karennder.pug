@@ -10,75 +10,117 @@ html(lang="ja")
   body
     header.header
       button.home(onclick="location.href='/home'") 
-          svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6")
-            path(d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z")
-            path(d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z")
-          |ホーム
+        svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6")
+          path(d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z")
+          path(d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z")
+        | ホーム
       button.logout(onclick="location.href='/logout'")
-          svg(xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f" class="logoutcontent")
-            path(d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z")
-        
-          | ログアウト
-      
+        svg(xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f" class="logoutcontent")
+          path(d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z")
+        | ログアウト
       button#prev.prev(type="button") ◀
       button#next.next(type="button") ▶
-    
-    
-    
+
+    aside.sidebar
+      a(href="/carender")
+        button プライベートカレンダー
+      h2 チャットカレンダー
+      div#chat-list
+      button#open-newchat 新規チャット作成   // ← ボタン
 
     div#karennder
 
-    
-    #memomodal
+    // 🔽 メモ用モーダル
+    #memomodal(style="display:none;")
       h2 予定
       p#modal-date(style="margin: 0; font-weight: bold;")
       br
       textarea#memo(rows="10", cols="40")
-      .button-styre
+      .button-style
       button#save.button-style 保存
       button.close(onclick="closeModal()") ✕
 
-    
+    // 🔽 新規チャット作成モーダル
+    #newchatmodal(style="display:none;")
+      .newchat
+        button.newchatclose(onclick="closeNewChat()") ✖️
+        h1 新規カレンダー作成
+        form#newchat-form
+          label(for="chatid") チャット名
+          input#chatid(type="text" name="chatid" required)
+          button(type="submit") 作成
+        p#error(style="color:red;")
+
+    // ====== スクリプト ======
     script.
-      window.closeModal = function () {
-        document.getElementById("memomodal").style.display = "none";
-      };
+      document.addEventListener("DOMContentLoaded", () => {
+        // ====== メモ用モーダル ======
+        window.closeModal = function () {
+          document.getElementById("memomodal").style.display = "none";
+        };
 
-      window.openModal = function(dateStr) {
-        document.getElementById('modal-date').innerText = dateStr;
+        window.openModal = function(dateStr) {
+          document.getElementById('modal-date').innerText = dateStr;
+          fetch(`/get-memo?date=${dateStr}`)
+            .then(res => res.json())
+            .then(data => {
+              document.getElementById('memo').value = data.memo || '';
+            });
+          document.getElementById('memomodal').style.display = 'block';
+        };
 
-        fetch(`/get-memo?date=${dateStr}`)
-          .then(res => res.json())
-          .then(data => {
-            document.getElementById('memo').value = data.memo || '';
+        document.getElementById("save").addEventListener("click", async () => {
+          const memosave = document.getElementById('memo').value;
+          const dateStr = document.getElementById('modal-date').innerText;
+          const res = await fetch('/save-memo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: dateStr, memo: memosave })
           });
-
-        document.getElementById('memomodal').style.display = 'block';
-      };
-
-      document.getElementById("save").addEventListener("click", async () => {
-        const memosave = document.getElementById('memo').value;
-        const dateStr = document.getElementById('modal-date').innerText;
-
-        const res = await fetch('/save-memo', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            date: dateStr,
-            memo: memosave
-          })
+          if (res.ok) {
+            alert('サーバーに保存されました');
+          } else {
+            alert('保存に失敗しました');
+          }
         });
 
-        if (res.ok) {
-          alert('サーバーに保存されました');
-         
-        } else {
-          alert('保存に失敗しました');
-        }
+        // ====== 新規チャット作成モーダル ======
+        const newChatModal = document.getElementById("newchatmodal");
+        const openBtn = document.getElementById("open-newchat");
+        const form = document.getElementById("newchat-form");
+        const errorElem = document.getElementById("error");
+
+        openBtn.addEventListener("click", () => {
+          newChatModal.style.display = "block";
+        });
+
+        window.closeNewChat = function () {
+          newChatModal.style.display = "none";
+          document.getElementById("chatid").value = "";
+          errorElem.textContent = "";
+        };
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const chatId = document.getElementById("chatid").value;
+          errorElem.textContent = "";
+          try {
+            const res = await fetch("/newchat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chatid: chatId })
+            });
+            if (res.ok) {
+              closeNewChat();
+              alert("チャットを作成しました");
+            } else {
+              errorElem.textContent = await res.text() || "チャット作成に失敗しました";
+            }
+          } catch (err) {
+            errorElem.textContent = "通信エラーが発生しました";
+          }
+        });
       });
 
     // カレンダーの描画・動作スクリプト
     script(src="karennder.js")
-

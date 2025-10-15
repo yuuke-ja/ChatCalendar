@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+  app:
+    build: .
+    tty: true
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: carender
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ../carender-db:/var/lib/postgresql/data
+
