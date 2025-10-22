@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const youbi = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -23,7 +23,6 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
     for (let d = 0; d < 7; d++) {
       if (w === 0 && d < startDay) {
         const num = lastMonthEndDayCount - startDay + d + 1;
-        // 前月の日付も span でラップ
         cells.push(
           <td key={`prev-${w}-${d}`} className="kako">
             <span>{num}</span>
@@ -31,7 +30,6 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
         );
       } else if (dayCount > endDay) {
         const num = dayCount - endDay;
-        // 翌月の日付も span でラップ
         cells.push(
           <td key={`next-${w}-${d}`} className="kako">
             <span>{num}</span>
@@ -51,6 +49,9 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
             onClick={() => onDateClick(dateStr)}
           >
             <span className={isToday ? "today" : ""}>{dayCount}</span>
+            {countbatch[dateStr] > 0 && (
+              <span className="countbatch">{countbatch[dateStr]}</span>
+            )}
           </td>
         );
         dayCount++;
@@ -58,7 +59,6 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
     }
     rows.push(<tr key={w}>{cells}</tr>);
   }
-
 
   return (
     <section>
@@ -73,26 +73,19 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
   );
 }
 
-export default function ChatCalendar({ memodate, onDateClick, startDate, countbatch }) {
-  const months = [];
-  const cursor = new Date(startDate);
-  for (let i = 0; i < 12; i++) {
-    months.push({ year: cursor.getFullYear(), month: cursor.getMonth() + 1 });
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
+export default function ChatCalendar({ memodate, onDateClick, startDate, countbatch = {} }) {
+  const year = startDate.getFullYear();
+  const month = startDate.getMonth() + 1;
 
   return (
     <div id="chatcalendar">
-      {months.map(({ year, month }) => (
-        <MonthCalendar
-          key={`${year}-${month}`}
-          year={year}
-          month={month}
-          memodate={memodate}
-          onDateClick={onDateClick}
-          countbatch={countbatch}
-        />
-      ))}
+      <MonthCalendar
+        year={year}
+        month={month}
+        memodate={memodate}
+        onDateClick={onDateClick}
+        countbatch={countbatch}
+      />
     </div>
   );
 }

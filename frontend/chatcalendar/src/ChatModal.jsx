@@ -379,6 +379,18 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                         alt="投稿画像"
                         className="chat-image"
                         onClick={() => setscreenImage(c.imageUrl)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          if (c.email === myEmail && !c.deleted) {
+                            setDeleteTarget({
+                              id: c.id,
+                              x: e.clientX,
+                              y: e.clientY,
+                              action: "delete",
+                            });
+                            return;
+                          }
+                        }}
                       />
                     )}
                   </>

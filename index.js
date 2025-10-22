@@ -920,6 +920,12 @@ io.on('connection', async(socket) => {
     }
   });
   socket.on("delete-message", async ({ messageId, roomId }) => {
+    const message = await prisma.chatmessage.findUnique({
+      where: { id: messageId },
+      select: { date: true, chatroomId: true }
+    });
+    if (!message) return;
+
     await prisma.reaction.deleteMany({
       where: { messageId }
     });
@@ -928,6 +934,26 @@ io.on('connection', async(socket) => {
       data: { deleted: true, important: false, content: "", imageUrl: null }
     });
     io.to(roomId).emit("message-deleted", { messageId });
+
+    const remaining = await prisma.chatmessage.count({
+      where: {
+        chatroomId: roomId,
+        date: message.date,
+        deleted: false,
+        OR: [
+          { content: { not: "" } },
+          { imageUrl: { not: null } }
+        ]
+      }
+    });
+
+    if (remaining === 0) {
+      const clearedDate = message.date.toISOString().split("T")[0];
+      io.to(roomId).emit("chat-date-cleared", {
+        chatroomId: roomId,
+        date: clearedDate,
+      });
+    }
   });
 
   app.post('/newchat',logincheck, async (req, res) => {
@@ -1064,6 +1090,7 @@ io.on('connection', async(socket) => {
         where: { chatroomId_userId: { chatroomId, userId: user.id } }
       });
       io.to(chatroomId).emit("member-removed", { chatroomId, userEmail });
+      io.to(user.id).emit("kicked", { chatroomId });
 
       console.log(`removed ${userEmail} from ${chatroomId}`);
     } catch (e) {

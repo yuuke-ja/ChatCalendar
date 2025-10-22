@@ -26,6 +26,24 @@ export default function App() {
   const [authorityOn, setAuthorityOn] = useState(false);
   const [UserinformationOpen, setUserinformationOpen] = useState(false);
   const [Roomdetails, setRoomdetails] = useState(false)
+  const [calendarStartDate, setCalendarStartDate] = useState(() => {
+    // localStorage から保存された日付を復元
+    const savedDate = localStorage.getItem("calendarStartDate");
+    return savedDate ? new Date(savedDate) : new Date();
+  });
+  const moveCalendarBlock = (delta) => {
+    setCalendarStartDate((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() + delta);
+      localStorage.setItem("calendarStartDate", d.toISOString()); // 保存
+      return d;
+    });
+  };
+  useEffect(() => {
+    const savedDate = localStorage.getItem("calendarStartDate");
+    if (savedDate) setCalendarStartDate(new Date(savedDate));
+  }, []);
+
   const chatroomIdRef = useRef(null);
   useEffect(() => {
     chatroomIdRef.current = chatroomId;
@@ -68,15 +86,7 @@ export default function App() {
     socketRef.current.emit("delete-myuser", { chatroomId, userEmail: myEmail })
   }
 
-  // ← カレンダー開始月を App に移動
-  const [calendarStartDate, setCalendarStartDate] = useState(new Date());
-  const moveCalendarBlock = (delta) => {
-    setCalendarStartDate((prev) => {
-      const d = new Date(prev);
-      d.setMonth(d.getMonth() + delta);
-      return d;
-    });
-  };
+
   useEffect(() => {
     async function fetchChatList() {
       const res = await fetch('/api/enterchat'); // 参加一覧取得用API
@@ -106,7 +116,7 @@ export default function App() {
       <div className="calendar-controls">
         <button id="prev" onClick={onPrev}>◀</button>
         <span>
-          {calendarStartDate.getFullYear()}年{calendarStartDate.getMonth() + 1}月から1年分
+          {calendarStartDate.getFullYear()}年{calendarStartDate.getMonth() + 1}月
         </span>
         <button id="next" onClick={onNext}>▶</button>
       </div>
@@ -228,15 +238,54 @@ export default function App() {
         });
         socket.on("member-removed", ({ chatroomId, userEmail }) => {
           setparticipants(prev => prev.filter(p => p.email !== userEmail));
+          if (myEmail === userEmail) {
+            setChatList(prev => prev.filter(chat => chat.id !== chatroomId));
+            if (chatroomIdRef.current === chatroomId) {
+              window.location.href = "/privatecalendar";
+            }
+          }
         })
         socket.on("kicked", ({ chatroomId }) => {
           setChatList(prev => prev.filter(chat => chat.id !== chatroomId));
-          console.log(`チャットID`, chatroomIdRef, chatroomId)
           if (chatroomIdRef.current === chatroomId) {
             window.location.href = "/privatecalendar";
           }
           setparticipants(prev => prev.filter(p => p.email !== myEmail));
         })
+        socket.on("chat-date-cleared", ({ chatroomId: updateroomId, date }) => {
+          setallcountbatch(prev => {
+            const next = { ...prev };
+            const key = String(updateroomId);
+            if (next[key]) {
+              const updated = { ...next[key] };
+              delete updated[date];
+              if (Object.keys(updated).length === 0) {
+                delete next[key];
+              } else {
+                next[key] = updated;
+              }
+            }
+            return next;
+          });
+
+          if (chatroomIdRef.current !== updateroomId) return;
+
+          setcountbatch(prev => {
+            const next = { ...prev };
+            delete next[date];
+            return next;
+          });
+
+          setMemodate(prev => prev.filter(d => d !== date));
+
+          if (selectedDateRef.current === date) {
+            setIsClosing(true);
+            setTimeout(() => {
+              setSelectedDate(null);
+              setIsClosing(false);
+            }, 300);
+          }
+        });
 
         socket.on("countbatchupdate", ({ chatroomId: updateroomId, date, count }) => {
           console.log("countbatchupdate 受信:", date);
@@ -306,6 +355,7 @@ export default function App() {
       mounted = false;
       socketRef.current.off("member-removed");
       socketRef.current.off("kicked");
+      socketRef.current.off("chat-date-cleared");
       socketRef.current.off("reflection-username");
       if (socketRef.current) socketRef.current.disconnect();
     };

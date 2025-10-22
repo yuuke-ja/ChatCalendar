@@ -22,17 +22,23 @@ export default function App() {
   const [newChatModalOpen, setNewChatModalOpen] = useState(false);
   const [allcountbatch, setallcountbatch] = useState({});
   const [UserinformationOpen, setUserinformationOpen] = useState(false);
-
-
-  // カレンダー開始月
-  const [calendarStartDate, setCalendarStartDate] = useState(new Date());
+  const [calendarStartDate, setCalendarStartDate] = useState(() => {
+    // localStorage から保存された日付を復元
+    const savedDate = localStorage.getItem("calendarStartDate");
+    return savedDate ? new Date(savedDate) : new Date();
+  });
   const moveCalendarBlock = (delta) => {
     setCalendarStartDate((prev) => {
       const d = new Date(prev);
       d.setMonth(d.getMonth() + delta);
+      localStorage.setItem("calendarStartDate", d.toISOString()); // 保存
       return d;
     });
   };
+  useEffect(() => {
+    const savedDate = localStorage.getItem("calendarStartDate");
+    if (savedDate) setCalendarStartDate(new Date(savedDate));
+  }, []);
 
   useEffect(() => {
     async function fetchChatList() {
@@ -58,7 +64,7 @@ export default function App() {
       <div className="calendar-controls">
         <button id="prev" onClick={onPrev}>◀</button>
         <span>
-          {calendarStartDate.getFullYear()}年{calendarStartDate.getMonth() + 1}月から1年分
+          {calendarStartDate.getFullYear()}年{calendarStartDate.getMonth() + 1}月
         </span>
         <button id="next" onClick={onNext}>▶</button>
       </div>
