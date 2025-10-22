@@ -1,4 +1,4 @@
-FROM node:20.11.0-slim
+FROM node:22.12.0-slim
 
 RUN apt-get update && \
     apt-get install -y locales git procps vim tmux curl
@@ -8,7 +8,15 @@ ENV LANG=ja_JP.UTF-8
 ENV TZ=Asia/Tokyo
 WORKDIR /app
 COPY package*.json ./
-RUN npm install 
+COPY frontend/package*.json frontend/
+
+RUN npm install \
+ && npm --prefix frontend install
+
 COPY . .
-RUN npx prisma generate
+
+RUN npm --prefix frontend run build -- --config chatcalendar/vite.config.js \
+ && npm --prefix frontend run build -- --config privatecalendar/vite.config.js \
+ && npx prisma generate
+
 CMD ["sh", "run.sh"]

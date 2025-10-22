@@ -23,7 +23,6 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
     for (let d = 0; d < 7; d++) {
       if (w === 0 && d < startDay) {
         const num = lastMonthEndDayCount - startDay + d + 1;
-        // 前月の日付も span でラップ
         cells.push(
           <td key={`prev-${w}-${d}`} className="kako">
             <span>{num}</span>
@@ -31,7 +30,6 @@ function MonthCalendar({ year, month, memodate, onDateClick, countbatch }) {
         );
       } else if (dayCount > endDay) {
         const num = dayCount - endDay;
-        // 翌月の日付も span でラップ
         cells.push(
           <td key={`next-${w}-${d}`} className="kako">
             <span>{num}</span>

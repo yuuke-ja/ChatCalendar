@@ -907,7 +907,7 @@ button {
 /*  リーダー */
 .member-roleleader {
   display: inline-block;
-  font-size: 0.8rem;          /* ← 少し小さく */
+  font-size: 0.8rem;   
   font-weight: bold;
   padding: 2px 8px;
   border-radius: 12px;
@@ -920,7 +920,7 @@ button {
 /*  サブリーダー */
 .member-rolesubleader {
   display: inline-block;
-  font-size: 0.8rem;          /* ← 少し小さく */
+  font-size: 0.8rem;          
   font-weight: bold;
   padding: 2px 8px;
   border-radius: 12px;
@@ -934,7 +934,7 @@ button {
 /*  メンバー */
 .member-rolemember {
   display: inline-block;
-  font-size: 0.8rem;          /* ← 少し小さく */
+  font-size: 0.8rem;         
   font-weight: bold;
   padding: 2px 8px;
   border-radius: 12px;
@@ -1104,7 +1104,7 @@ button {
   transform: scale(1.05);
 }
 
-/* フェードインアニメーション */
+
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
@@ -1197,7 +1197,6 @@ button {
   font-size: 15px;
 }
 
-/* ボタン群 */
 .userinfo-buttons {
   display: flex;
   justify-content: flex-end;
@@ -1221,7 +1220,6 @@ button {
   background-color: #00a48f;
 }
 
-/* 閉じるボタン */
 .userinfo-modal > button {
   position: absolute;
   top: 10px;
@@ -1247,7 +1245,7 @@ button {
 }
 
 .logout:hover {
-  background-color: #d32f2f; /* 少し濃い赤に */
+  background-color: #d32f2f; 
   transform: translateY(-1px);
   color: #fff;
 }
@@ -1273,28 +1271,28 @@ button {
   to { transform: scale(1); opacity: 1; }
 }
 .friend-overlay{
-  position: fixed;        /* 画面全体に固定 */
+  position: fixed;       
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.439); /* 半透明黒 */
-  display: flex;           /* 中央配置 */
+  background: rgba(0, 0, 0, 0.439); 
+  display: flex;           
   justify-content: center;
   align-items: center;
-  z-index: 2000;           /* モーダルより上に出す */
+  z-index: 2000;          
 }
 .friend{
-  position: fixed;       /* 画面に固定 */
+  position: fixed;      
   top: 50%;
   left: 50%;
   width: 25%;
   height: 70%;
-  transform: translate(-50%, -50%); /* 中央に配置 */
-  background: white;     /* 背景 */
+  transform: translate(-50%, -50%); 
+  background: white;  
   border: 1px solid #ccc;
   padding: 20px;
-  z-index: 1000;         /* 上に重ねる */
+  z-index: 1000;         
 }
 
 .friend {
@@ -1305,9 +1303,9 @@ button {
   margin-top: 10px;
 }
 .friend-input {
-  width: 80%;          /* ← 横幅は % 指定でOK */
-  padding: 8px 12px;   /* ← 高さは padding で調整 */
-  font-size: 16px;     /* ← 文字サイズで見やすく */
+  width: 80%;          
+  padding: 8px 12px;   
+  font-size: 16px;     
   border: 1px solid #ccc;
   border-radius: 6px;
   box-sizing: border-box;
@@ -1393,7 +1391,7 @@ button {
   color: #333;
 }
 
-/* ボタンを縦並びに変更 */
+
 .room-actions {
   display: flex;
   flex-direction: column;
@@ -1401,7 +1399,7 @@ button {
   margin-top: 20px;
 }
 
-/* ボタンの見た目をシンプルに */
+
 .room-actions button {
   width: 100%;
   border: 1px solid #ccc;

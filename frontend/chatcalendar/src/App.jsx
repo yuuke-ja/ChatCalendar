@@ -103,7 +103,6 @@ export default function App() {
     <header className="header">
       <div id="title" className="title">{chatroomName}</div>
 
-      {/* カレンダーコントロールをここに移動 */}
       <div className="calendar-controls">
         <button id="prev" onClick={onPrev}>◀</button>
         <span>
@@ -324,7 +323,6 @@ export default function App() {
 
   return (
     <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}`}>
-      {/* 左サイドバー */}
       <aside className="sidebar">
         <button className="Room-details" onClick={() => setRoomdetails(true)}>ルーム詳細</button>
         <button
@@ -366,13 +364,11 @@ export default function App() {
               </button>
             </div>
 
-            {/* ルーム情報 */}
             <div className="room-info">
               <p><span className="label">参加者数：</span>{participants.length}人</p>
               <p><span className="label">権限：</span>{authorityOn ? "ON" : "OFF"}</p>
             </div>
 
-            {/*  操作ボタン */}
             <div className="room-actions">
               <button onClick={() => setmembermodal(true)}>参加者を見る</button>
               <button onClick={() => (window.location.href = "/userinvite")}>招待する</button>
@@ -395,7 +391,7 @@ export default function App() {
         >
           <div
             className="userinfo-modal"
-            onClick={(e) => e.stopPropagation()} // モーダル内クリックでは閉じない
+            onClick={(e) => e.stopPropagation()}
           >
             <button onClick={() => setUserinformationOpen(false)}>閉じる</button>
             <h2>ユーザー情報</h2>
@@ -464,7 +460,7 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* 👑 リーダーだけ操作ボタン表示 */}
+                  {/* リーダーだけ操作ボタン表示 */}
                   {myrole === "leader" && p.role !== "leader" && (
                     <div className="member-actions">
                       <button className="btn-subleader" onClick={() => makesubleader(p.email)}>{p.role === "member" ? "サブリーダー任命" : "サブリーダーから外す"}</button>
@@ -480,7 +476,6 @@ export default function App() {
       )}
 
 
-      {/* 右のメインビュー（ここに元のUI丸ごと入れる） */}
       <main className={`main-view${selectedDate ? (isClosing ? " closing-modal" : " with-modal") : ""}`}>
         <div className={`chatcalendar-page ${isClosing ? "closing-modal" : ""}`}>
 
@@ -526,8 +521,8 @@ export default function App() {
               selectedDate={selectedDate}
               closeModal={handleCloseModal}
               myEmail={myEmail}
-              myrole={myrole}             // 追加
-              authorityOn={authorityOn}   // 追加
+              myrole={myrole}
+              authorityOn={authorityOn}
             />
 
           )}

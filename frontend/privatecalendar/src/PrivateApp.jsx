@@ -201,7 +201,7 @@ export default function App() {
         >
           <div
             className="userinfo-modal"
-            onClick={(e) => e.stopPropagation()} // モーダル内クリックでは閉じない
+            onClick={(e) => e.stopPropagation()}
           >
             <button onClick={() => setUserinformationOpen(false)}>閉じる</button>
             <h2>ユーザー情報</h2>

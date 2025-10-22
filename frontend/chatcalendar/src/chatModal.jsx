@@ -169,7 +169,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => setPreviewSrc(ev.target.result); // ← previewRef から state に変更
+      reader.onload = (ev) => setPreviewSrc(ev.target.result);
       reader.readAsDataURL(file);
     } else {
       setPreviewSrc(null);
@@ -238,7 +238,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
             top: 0,
             left: 0,
             width: "100%",
-            height: "100%", // ← 画面全体ではなく chatmodal 内部の高さに
+            height: "100%",
             background: "transparent",
             zIndex: 9998,
           }}
@@ -246,7 +246,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
           <div
             id="important-list"
             className="important-list"
-            onClick={(e) => e.stopPropagation()} // ここでクリックを伝播させない
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "absolute",
               top: "60px",
@@ -297,13 +297,13 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       <div id="chatwrite" className="chat-history" ref={chatHistoryRef}>
         {chatList === null ? null : chatList.length > 0 ? (
           chatList.map((c) => {
-            const isDeleted = c.deleted; // 追加
+            const isDeleted = c.deleted;
             const hasContent = c.content && c.content.trim() !== "";
             const hasImage = c.imageUrl && c.imageUrl.trim() !== "";
 
             let userclass = "none";
             if (isDeleted) {
-              userclass = "deletechat"; // 削除済み用のクラス
+              userclass = "deletechat"; // 削除済み
             } else if (hasContent || hasImage) {
               if (c.important) {
                 userclass = "importantuser";
@@ -321,7 +321,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                     {c.user.username} さんが {new Date(c.createdAt).toLocaleString()} の投稿を削除しました
                   </div>
                 ) : (
-                  // 通常メッセージ
                   <>
                     <p className="date">{new Date(c.createdAt).toLocaleString()}</p>
                     <p className="user">{c.user.username}</p>
@@ -347,7 +346,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                                 content: c.content,
                               });
                             } else {
-                              // 通常メッセージ → 削除のみ
                               setDeleteTarget({
                                 id: c.id,
                                 x: e.clientX,
@@ -358,7 +356,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                             return;
                           }
 
-                          // 他人の重要メッセージ → カレンダー保存のみ
+
                           if (c.important) {
                             setDeleteTarget({
                               id: c.id,
@@ -397,7 +395,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                       return (
                         <>
                           <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                            {/* ここがピッカーを出す元の + ボタン（常に表示） */}
                             <button
                               key={`picker-add-${c.id}`}
                               className="reaction-add"
@@ -410,7 +407,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#999999"><path d="M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400h-66q-22 37-58.5 58.5T480-320q-43 0-79.5-21.5T342-400h-66q25 63 80.5 101.5T480-260Zm0 180q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z" /></svg>
                             </button>
-                            {/* visible reactions */}
                             {visibleReactions.map((item, idx) => {
                               const reacted = (item.emails || []).includes(myEmail);
                               return (

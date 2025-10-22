@@ -13,7 +13,6 @@ export default function FriendModal({ socket, onClose }) {
     fetchFriends();
     if (!socket) return;
 
-    // 新しいフレンドが来たとき
     socket.on("newfriend", (data) => {
       setFriendList((prev) => [...prev, data.friendname]);
     });

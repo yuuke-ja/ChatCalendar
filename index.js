@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path')
 const multer = require('multer')
+const cloudinary = require('cloudinary').v2;
 const app = express();
 const http =require("http");
 const server =http.createServer(app);
@@ -18,18 +19,17 @@ const { body, validationResult } = require('express-validator');
 const nodemailer = require("nodemailer");
 const passport =require('passport');
 //const YahooStrategy = require('passport-yahoo-oauth2').Strategy;
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-  cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-  const timestamp = Date.now();
-  const fileName = `${timestamp}-${file.originalname}`;
-  cb(null, fileName);
-  }
-  });
+require('dotenv').config()
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = multer.memoryStorage();
 const upload = multer({
-  storage: storage,
+  storage,
   limits: {
   fileSize: 10 * 1024 * 1024 // 10MB
   },
@@ -42,13 +42,16 @@ const upload = multer({
   }
   });
     
-require('dotenv').config()
+const isProduction = process.env.NODE_ENV === 'production';
+app.set('trust proxy', 1);
 const sessionsocket = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  proxy: isProduction,
   cookie: {
-    secure: false,  // localhostならfalse, HTTPS環境はtrue
+    secure: isProduction,  // localhostならfalse, HTTPS環境はtrue
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000}
 });
 io.use((socket, next) => {
@@ -86,7 +89,7 @@ passport.use('google', new GoogleStrategy({
     
     clientID:    process.env.GOOGLE_CLIENT_ID,
     clientSecret:process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:8000/auth/google/callback",
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:8000/auth/google/callback",
     passReqToCallback   : true
   },
   async function(request, accessToken, refreshToken, profile, done) {
@@ -241,7 +244,6 @@ app.use(express.urlencoded({ extended: true }));  //formのpostを受け取る�
 app.use(express.static(path.join(__dirname))); // 静的ファイル
 
 app.use(express.static('public'))
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 function logincheck(req, res, next) {
   if (req.session && req.session.logined) { // ← 安全にチェック
     next();
@@ -1171,7 +1173,7 @@ app.post('/userinvite',logincheck,loginchatcheck,async (req,res)=>{
 });
 app.post('/save-memo', logincheck, async (req, res) => {
   const email = req.session.logined;
-  const { date, memoList } = req.body; // ← memoList は配列
+  const { date, memoList } = req.body; 
   const user = await prisma.user.findUnique({ where: { email } });
 
   try {
@@ -1427,16 +1429,32 @@ app.get('/api/friends',logincheck, async (req, res) => {
   res.json([...friendlist1, ...friendlist2]);
 });
 
-app.post('/upload-image',upload.single('image'),(req,res)=>{
-  try{
-    if(!req.file){
-      return res.status(400).json({error:'画像ファイルがありません'});
+app.post('/upload-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '画像ファイルがありません' });
     }
-    const imageUrl=`/uploads/${req.file.filename}`;
-    res.status(200).json({imageUrl})
-  }catch(error){
+
+    const uploadStream = () =>
+      new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'carender' },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+
+    const result = await uploadStream();
+    res.status(200).json({ imageUrl: result.secure_url });
+  } catch (error) {
     console.error(`画像アップロード${error}`);
-    res.status(500).json({error:'サーバエラー'})
+    res.status(500).json({ error: 'サーバエラー' });
   }
 })
 
