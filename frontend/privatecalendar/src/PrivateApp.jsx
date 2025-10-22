@@ -21,6 +21,7 @@ export default function App() {
   const [friendModalOpen, setFriendModalOpen] = useState(false);
   const [newChatModalOpen, setNewChatModalOpen] = useState(false);
   const [allcountbatch, setallcountbatch] = useState({});
+  const [UserinformationOpen, setUserinformationOpen] = useState(false);
 
 
   // カレンダー開始月
@@ -62,7 +63,7 @@ export default function App() {
         <button id="next" onClick={onNext}>▶</button>
       </div>
       <button className="home" onClick={() => (window.location.href = "/home")}>ホーム</button>
-      <button className="logout" onClick={() => (window.location.href = "/logout")}>ログアウト</button>
+      <button className="Userinformation" onClick={() => setUserinformationOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#999999"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" /></svg></button>
       <button className="userinvite" onClick={() => (window.location.href = "/userinvite")}>招待</button>
     </header>
   );
@@ -79,71 +80,91 @@ export default function App() {
   // 初期化 & socket 接続
   useEffect(() => {
     let mounted = true;
-    socketRef.current = io("/", {
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000
-    });
-    const socket = socketRef.current;
 
-    socket.on("connect", () => setSocketReady(true));
-    socket.on("disconnect", (reason) => console.log("Socket disconnected:", reason));
-    socket.on("reconnect_attempt", (attempts) => console.log(`Reconnection attempt #${attempts}`));
-    socket.on("reconnect", (attempts) => console.log(`Reconnected after ${attempts} attempts`));
-    socket.on("reconnect_failed", () => window.location.reload());
-
-    // 新規チャット通知は残す
-    socket.on("newchatlist", (chat) => setChatList(prev => [...prev, chat]));
-    socket.on("invitelist", (chat) => setChatList(prev => [...prev, chat]));
-    // "newchat" は削除
-    socket.on("newmemo", (newdate) => {
-      setMemodate(prev => prev.includes(newdate) ? prev : [...prev, newdate]);
-      console.log(newdate)
-    });
-    socket.on("deletememo", (deletedDate) => {
-      setMemodate(prev => prev.filter(d => d !== deletedDate));
-    });
-    socket.on("countbatchupdate", ({ chatroomId: updateroomId, date, count }) => {
-      setallcountbatch(prev => {
-        const next = { ...prev };
-        if (!next[updateroomId]) next[updateroomId] = {};
-        next[updateroomId][date] = count;
-        return next;
-      });
-    });
-
-
-
-    async function fetchmemodate() {
-      const data = await fetch('/get-date')
-      const datas = await data.json()
-      if (!mounted)
-        return
-      setMemodate(datas)
-    }
-    fetchmemodate()
-    async function fetchAllCountBatch() {
+    (async () => {
       try {
-        const res = await fetch('/api/mycountbatch/all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const res = await fetch(new URL('/api/privatecalendar-info', window.location.origin), {
+          credentials: 'include',
+          cache: 'no-store',
         });
+
+        if (!res.ok) {
+          const body = await res.text();
+          console.error('privatecalendar-info NG', res.status, body.slice(0, 200));
+          throw new Error(`/api/privatecalendar-info ${res.status}`);
+        }
+
         const data = await res.json();
-        setallcountbatch(data); // state に保存
+        setMyUsername(data.username);
+        setMyEmail(data.useremail);
+
+
+        socketRef.current = io("/", {
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000
+        });
+        const socket = socketRef.current;
+
+        socket.on("connect", () => setSocketReady(true));
+        socket.on("disconnect", (reason) => console.log("Socket disconnected:", reason));
+        socket.on("reconnect_attempt", (attempts) => console.log(`Reconnection attempt #${attempts}`));
+        socket.on("reconnect", (attempts) => console.log(`Reconnected after ${attempts} attempts`));
+        socket.on("reconnect_failed", () => window.location.reload());
+
+        socket.on("newchatlist", (chat) => setChatList(prev => [...prev, chat]));
+        socket.on("invitelist", (chat) => setChatList(prev => [...prev, chat]));
+        socket.on("newmemo", (newdate) => {
+          setMemodate(prev => prev.includes(newdate) ? prev : [...prev, newdate]);
+        });
+        socket.on("deletememo", (deletedDate) => {
+          setMemodate(prev => prev.filter(d => d !== deletedDate));
+        });
+        socket.on("reflection-username", (username) => {
+          setMyUsername(username);
+        });
+        socket.on("countbatchupdate", ({ chatroomId: updateroomId, date, count }) => {
+          setallcountbatch(prev => {
+            const next = { ...prev };
+            if (!next[updateroomId]) next[updateroomId] = {};
+            next[updateroomId][date] = count;
+            return next;
+          });
+        });
+
+        async function fetchmemodate() {
+          const data = await fetch('/get-date');
+          const datas = await data.json();
+          if (!mounted) return;
+          setMemodate(datas);
+        }
+        fetchmemodate();
+
+        async function fetchAllCountBatch() {
+          try {
+            const res = await fetch('/api/mycountbatch/all', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            setallcountbatch(data);
+          } catch (e) {
+            console.error("allcountbatch fetch error", e);
+          }
+        }
+        fetchAllCountBatch();
+
       } catch (e) {
-        console.error("allcountbatch fetch error", e);
+        console.error("初期化エラー:", e);
       }
-    }
-
-    fetchAllCountBatch();
-
+    })();
 
     return () => {
       mounted = false;
-      if (socketRef.current) socketRef.current.disconnect();
+      socketRef.current?.off("reflection-username");
+      socketRef.current?.disconnect();
     };
-
   }, []);
 
   const handleCloseModal = () => {
@@ -158,7 +179,7 @@ export default function App() {
     <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}`}>
       <aside className="sidebar">
         <button onClick={() => setNewChatModalOpen(true)}>新規チャット作成</button>
-        <button type="button" onClick={() => window.location.href = "/carender"}>プライベートカレンダー</button>
+        <button type="button" onClick={() => window.location.href = "/privatecalendar"}>プライベートカレンダー</button>
         <h2>チャットカレンダー</h2>
         {chatList.map(chat => {
           const counts = allcountbatch[chat.id] || {};
@@ -173,6 +194,51 @@ export default function App() {
 
         <button onClick={() => setFriendModalOpen(true)}>フレンド</button>
       </aside>
+      {UserinformationOpen && (
+        <div
+          className="userinfo-overlay"
+          onClick={() => setUserinformationOpen(false)} // 背景クリックで閉じる
+        >
+          <div
+            className="userinfo-modal"
+            onClick={(e) => e.stopPropagation()} // モーダル内クリックでは閉じない
+          >
+            <button onClick={() => setUserinformationOpen(false)}>閉じる</button>
+            <h2>ユーザー情報</h2>
+            <div className="userinfo-item">
+              <label>ユーザー名</label>
+              <input
+                type="text"
+                value={myUsername}
+                onChange={(e) => setMyUsername(e.target.value)}
+              />
+            </div>
+            <div className="userinfo-buttons">
+              <button
+                onClick={async () => {
+                  socketRef.current.emit("update-username", myUsername)
+                }}
+              >
+                変更
+              </button>
+            </div>
+
+            <div className="userinfo-item">
+              <label>メールアドレス</label>
+              <span>{myEmail}</span>
+            </div>
+            <div className="userinfo-buttons">
+              <a href="/logout" className="logout">
+                ログアウト
+              </a>
+            </div>
+
+
+          </div>
+        </div>
+
+      )
+      }
 
       {friendModalOpen && <FriendModal socket={socketRef.current} onClose={() => setFriendModalOpen(false)} />}
       {newChatModalOpen && <NewChatModal onClose={() => setNewChatModalOpen(false)} />}

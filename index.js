@@ -146,7 +146,7 @@ app.get('/auth/google/success',async(req,res)=>{
   req.session.logined=req.user.email
   req.session.username=req.user.username
   req.session.useremail=req.user.email
-  res.redirect('/home')
+  res.redirect('/privatecalendar')
 })
 app.get('/auth/google/failure',(req,res)=>{
   res.send('失敗しました')
@@ -254,7 +254,7 @@ function loginchatcheck(req, res, next) {
   if (req.session && req.session.chatplay) { // ← 安全にチェック
     next();
   } else {
-    res.redirect('/enterchat');
+    res.redirect('/logout');
   }
 }
 function verifiedcheck(req,res,next){
@@ -434,7 +434,7 @@ app.post("/login",async (req,res)=>{
   req.session.useremail = user.email
   req.session.logined=user.email
   req.session.username=user.username
-  res.redirect('/home')
+  res.redirect('/privatecalendar')
 }catch (error) {
     console.error(error);
     res.status(500).send('サーバーエラー');
@@ -445,71 +445,65 @@ app.post("/login",async (req,res)=>{
 app.get('/carender',logincheck, (req, res) => {
   res.render('karennder');
 });
-app.get('/get-date',async (req,res)=>{
-  const email=req.session.logined
-  const user =await prisma.user .findUnique({where:{email}})
-  try{
-
-    const posts =await prisma.post.findMany({
-      where: {
-        NOT:{
-          content: ""
-        },
-        userId:user.id,
-      },
-      select: {
-       createdAt: true
-      }
-    })
-    const dates =posts.map(post=>{
-      const da =new Date(post.createdAt);
-      return `${da.getFullYear()}-${String(da.getMonth() + 1).padStart(2, '0')}-${String(da.getDate()).padStart(2, '0')}`;
-  })
-  res.json(dates)
-
-  }catch(error){
-    console.error(error);
-    res.status(500).send('エラー')
-  }
-
-})
-
-app.get('/get-memo',logincheck, async (req, res) => {
+app.get('/get-date', async (req, res) => {
   try {
-    if (!req.query.date) {
-      res.status(400).send('dateパラメータが必要です');
-      return;
-    }
-    const normalizedDate = normalizeDate(req.query.date);
-    const start = new Date(normalizedDate + 'T00:00:00.000Z');
-    const end = new Date(normalizedDate + 'T23:59:59.999Z');
-    const email=req.session.logined
-    const user =await prisma.user .findUnique({where:{email}})//prisma user　usernameの情報
-    if (isNaN(start) || isNaN(end)) {
-      res.status(400).send('無効な日付です');
-      return;
-    }
-
-    const result = await prisma.post.findFirst({
+    const email = req.session.logined;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(401).send('ユーザーが見つかりません');
+    const posts = await prisma.post.findMany({
       where: {
-        createdAt: {
-          gte: start,
-          lt: end,
+        userId: user.id,
+        memos: {
+          some: {
+            content: { not: "" },
+          },
         },
-        userId:user.id,
       },
+      select: { createdAt: true },
+    });
+    const dates = posts.map(post => {
+      const da = new Date(post.createdAt);
+      return `${da.getFullYear()}-${String(da.getMonth() + 1).padStart(2, '0')}-${String(da.getDate()).padStart(2, '0')}`;
     });
 
-    if (result) {
-      res.json({ memo: result.content });
+    const uniqueDates = [...new Set(dates)];
+    res.json(uniqueDates);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('エラー');
+  }
+});
+
+
+app.get('/get-memo', logincheck, async (req, res) => {
+  try {
+    const email = req.session.logined;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    const normalizedDate = normalizeDate(req.query.date);
+    const start = new Date(`${normalizedDate}T00:00:00.000Z`);
+    const end = new Date(`${normalizedDate}T23:59:59.999Z`);
+
+    const post = await prisma.post.findFirst({
+      where: {
+        createdAt: { gte: start, lt: end },
+        userId: user.id,
+      },
+      include: { memos: true }, // ← 関連メモも取る
+    });
+
+    if (post && post.memos.length > 0) {
+      res.json({ memoList: post.memos.map((m) => m.content) });
     } else {
-      res.json({ memo: '' });
+      res.json({ memoList: [] });
     }
   } catch (error) {
     console.error('データ取り出し失敗', error);
     res.status(500).send('失敗');
   }
 });
+
 
 app.get('/logout', (req, res) => {
   req.session.destroy(()=>{
@@ -654,16 +648,31 @@ app.get('/api/chatcalendar-info', logincheck,loginchatcheck, async (req, res) =>
   })
   res.json({
     chatroomId,
+    authority: chatroom.authority,
     username,
     useremail,
     chatroomname: chatroom.chatid,
     memodate: [...new Set(dates)],
     participants: members.map(m => ({
       name: m.user.username,
-      email: m.user.email
+      email: m.user.email,
+      role: m.role
     }))
   });
 });
+
+
+
+app.get(
+  ['/api/privatecalendar-info', '/privatecalendar-info'],
+  logincheck,
+  async (req, res) => {
+    const username = req.session.username;
+    const useremail = req.session.useremail;
+    res.json({ username, useremail });
+  }
+);
+
 
 
 app.get('/userinvite',async (req, res) => {
@@ -829,7 +838,7 @@ io.on('connection', async(socket) => {
     }
   })
 
-  socket.on("savechat", async ({ roomId, date, chat, imageUrl }) => {
+  socket.on("savechat", async ({ roomId, date, chat, imageUrl,important }) => {
     try {
       const user = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
       if (!user) return;
@@ -847,14 +856,17 @@ io.on('connection', async(socket) => {
           content: chat,
           email: user.email,
           date: datestamp,
-          postedBy: user.username,
-          chatroom: { connect: { id: roomId } },
+          chatroomId: roomId ,
+          userId:user.id,
+          important
+        },
+        include: {
+          user: { select: { username: true, email: true } }, // ← これを追加！
         },
       });
       console.log("保存されたchatmessage:", saved);
       io.to(roomId).emit("newchat", {
         chat: saved,
-        user: { id: user.id, name: user.username, email: user.email },
         date,
         chatroomId: roomId,
       });
@@ -888,12 +900,10 @@ io.on('connection', async(socket) => {
               count: 1
             }
           });
-  
-          // イベント名はフロントに合わせてください（ここは 'countbatchUpdate'）
           io.to(m.userId).emit('countbatchupdate', {
             chatroomId: roomId,
             date,         
-            count: upserted.count  // upsert 後の最新カウント
+            count: upserted.count  
           });
           console.log("通知送信:", m.userId, upserted.count,date)
         } catch (e) {
@@ -907,6 +917,17 @@ io.on('connection', async(socket) => {
       socket.emit("送信失敗");
     }
   });
+  socket.on("delete-message", async ({ messageId, roomId }) => {
+    await prisma.reaction.deleteMany({
+      where: { messageId }
+    });
+    await prisma.chatmessage.update({
+      where: { id: messageId },
+      data: { deleted: true, important: false, content: "", imageUrl: null }
+    });
+    io.to(roomId).emit("message-deleted", { messageId });
+  });
+
   app.post('/newchat',logincheck, async (req, res) => {
     console.log("aaaaaaaaaaaaaaaaaa")
     const { chatid} = req.body;
@@ -921,6 +942,7 @@ io.on('connection', async(socket) => {
       data:{
         chatroomId:chatroomdata.id,
         userId:user.id,
+        role:"leader"
       }
     })
     io.to(user.id).emit('newchatlist',{
@@ -936,6 +958,162 @@ io.on('connection', async(socket) => {
     res.send('IDが既に存在しています')
   }
   });
+
+  socket.on("chenge-authority", async ({ chatroomId,val }) => {
+    try {
+      const myuser = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
+      const myuserMember = await prisma.chatmember.findFirst({
+        where: { chatroomId, userId: myuser.id }
+      });
+      if (!myuserMember || myuserMember.role !== "leader") {
+        socket.emit("error-message", { message: "権限がありません" });
+        return;
+      }
+      await prisma.chatroom.update({
+        where: { id: chatroomId },
+        data: { authority: val }  // val は true/false
+      });
+      io.to(chatroomId).emit("authority-changed", { chatroomId, val });
+    } catch (e) {
+      console.error("make-subleader error:", e);
+    }
+  });
+
+  socket.on("make-subleader", async ({ chatroomId, userEmail }) => {
+    try {
+      const user=await prisma.user.findUnique({where:{email:userEmail}})
+      const member=await prisma.chatmember.findUnique({
+        where:{chatroomId_userId:{chatroomId,userId:user.id}},
+        select:{role:true}
+      })
+      const newrole =member.role==="member" ? "subleader":"member";
+      await prisma.chatmember.update({
+        where: { chatroomId_userId: { chatroomId, userId:user.id} },
+        data: { role: newrole }
+      });
+
+      const participants = await prisma.chatmember.findMany({
+        where: { chatroomId },
+        include: { user: { select: { username: true, email: true } } }
+      });
+
+      io.to(chatroomId).emit("newrole", {
+        userEmail,newrole
+      });
+
+    } catch (e) {
+      console.error("make-subleader error:", e);
+    }
+  });
+
+  socket.on("change-leader",async({ chatroomId, userEmail })=>{
+    try{
+      const myuser = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
+      const isuser=await prisma.user.findUnique({ where: { email: userEmail } });
+      if (!myuser)return
+      const myuserMember = await prisma.chatmember.findFirst({
+        where: { chatroomId, userId: myuser.id }
+      });
+      if (!myuserMember || myuserMember.role !== "leader") {
+        socket.emit("error-message", { message: "権限がありません" });
+        return;
+      }
+      if (!isuser) {
+        socket.emit("error-message", { message: "対象ユーザーが存在しません" });
+        return;
+      }
+
+      await prisma.chatmember.update({
+        where: { chatroomId_userId: { chatroomId, userId:isuser.id} },
+        data: { role: "leader" }
+      });
+      await prisma.chatmember.update({
+        where: { chatroomId_userId: { chatroomId, userId:myuser.id} },
+        data: { role: "member" }
+      });
+      io.to(chatroomId).emit("newrole", {
+        userEmail,newrole:"leader"
+      });
+      io.to(chatroomId).emit("newrole", {
+        userEmail:myuser.email,newrole:"member"
+      });
+    } catch (e) {
+      console.error("change-leader error:", e);
+
+    }
+  });
+
+  socket.on("delete-member", async ({ chatroomId, userEmail }) => {
+    try {
+      const issuerEmail = socket.request.session?.logined;
+      const issuer = await prisma.user.findUnique({ where: { email: issuerEmail } });
+      if (!issuer) return;
+
+      const issuerMember = await prisma.chatmember.findFirst({
+        where: { chatroomId, userId: issuer.id }
+      });
+      if (!issuerMember || issuerMember.role !== "leader") {
+        socket.emit("error-message", { message: "権限がありません" });
+        return;
+      }
+      const user = await prisma.user.findUnique({ where: { email: userEmail } });
+      if (!user) return;
+      await prisma.chatmember.delete({
+        where: { chatroomId_userId: { chatroomId, userId: user.id } }
+      });
+      io.to(chatroomId).emit("member-removed", { chatroomId, userEmail });
+
+      console.log(`removed ${userEmail} from ${chatroomId}`);
+    } catch (e) {
+      console.error("remove-member error:", e);
+      socket.emit("error-message", { message: "サーバーエラー" });
+    }
+  });
+
+  socket.on("delete-myuser", async ({ chatroomId, userEmail }) => {
+    try {
+      const currentEmail = socket.request.session?.logined;
+      if (!currentEmail || currentEmail !== userEmail) {
+        socket.emit("error-message", { message: "権限がありません" });
+        return;
+      }
+      const user = await prisma.user.findUnique({ where: { email: currentEmail } });
+      if (!user) return;
+      await prisma.chatmember.delete({
+        where: { chatroomId_userId: { chatroomId, userId: user.id } }
+      });
+      io.to(chatroomId).emit("member-removed", { chatroomId, userEmail });
+      io.to(user.id).emit("kicked", { chatroomId });
+      console.log(`User ${currentEmail} left room ${chatroomId}`);
+    } catch (e) {
+      console.error("delete-myuser error:", e);
+      socket.emit("error-message", { message: "サーバーエラー" });
+    }
+  });
+
+
+
+  socket.on("update-username", async (usernameData) => {
+    const email = socket.request.session.useremail;
+    const user = await prisma.user.findUnique({ where: { email } });
+    // 文字列かオブジェクトかを判定する
+    const username =
+      typeof usernameData === "string"
+        ? usernameData
+        : usernameData.username;
+
+    console.log("名前変更:", username);
+
+    const updateuser = await prisma.user.update({
+      where: { id: user.id },
+      data: { username: username }, 
+    });
+    socket.request.session.username = updateuser.username;
+    socket.request.session.save();
+    io.to(user.id).emit("reflection-username", updateuser.username);
+  });
+
+
   //ユーザを招待
 app.post('/userinvite',logincheck,loginchatcheck,async (req,res)=>{
   const chatroomid=req.session.chatplay
@@ -974,7 +1152,9 @@ app.post('/userinvite',logincheck,loginchatcheck,async (req,res)=>{
     })
     const participants= members.map(m => ({
       name: m.user.username,
-      email: m.user.email
+      email: m.user.email,
+      role:m.role
+
     }))
     io.to(chatrooms.id).emit('participants', { participants });
     io.to(user.id).emit('invitelist',{
@@ -989,46 +1169,60 @@ app.post('/userinvite',logincheck,loginchatcheck,async (req,res)=>{
 
   }
 });
-app.post('/save-memo',logincheck, async (req, res) => {
-  const email=req.session.logined
-  const { date, memo } = req.body;
-  const user =await prisma.user .findUnique({where:{email}})
-  try {
-   
-    const datestamp = new Date(normalizeDate(date) + 'T00:00:00.000Z');
-    if (isNaN(datestamp)) {
-      res.status(400).send('無効な日付です');
-      return;
-    }
-    console.log(`受信した日付: ${date}, メモ: ${memo}`);
+app.post('/save-memo', logincheck, async (req, res) => {
+  const email = req.session.logined;
+  const { date, memoList } = req.body; // ← memoList は配列
+  const user = await prisma.user.findUnique({ where: { email } });
 
-    const Post = await prisma.post.findFirst({
-      where: {
-        userId: user.id,
-        createdAt: datestamp,
-      },
+  try {
+    const datestamp = new Date(`${normalizeDate(date)}T00:00:00.000Z`);
+    if (isNaN(datestamp)) {
+      return res.status(400).send('無効な日付です');
+    }
+
+    // その日のPostを探す（なければ作る）
+    let post = await prisma.post.findFirst({
+      where: { userId: user.id, createdAt: datestamp },
     });
-    
-    if (Post) {
-      await prisma.post.update({
-        where: { id: Post.id },
-        data: { content: memo },
-      });
-    } else {
-      await prisma.post.create({
+
+    if (!post) {
+      post = await prisma.post.create({
         data: {
-          content: memo,
           userId: user.id,
           postedBy: user.username,
           createdAt: datestamp,
+          content: "",
         },
       });
     }
-    const datestr = datestamp.toISOString().split('T')[0]; // "2025-10-13"
-    if (memo===""){
-      io.to(user.id).emit('deletememo', datestr);
-    }else{
-      io.to(user.id).emit('newmemo',datestr);}
+
+    // 既存のメモを全部削除してから新しいメモを追加
+    await prisma.memo.deleteMany({
+      where: { postId: post.id },
+    });
+
+    let savedMemoCount = 0;
+
+    if (Array.isArray(memoList)) {
+      const nonEmptyMemos = memoList.filter(text => text.trim() !== "");
+      if (nonEmptyMemos.length > 0) {
+        await prisma.memo.createMany({
+          data: nonEmptyMemos.map((text) => ({
+            content: text,
+            postId: post.id,
+          })),
+        });
+        savedMemoCount = nonEmptyMemos.length;
+      }
+    }
+
+    // 非空メモがある場合のみ newmemo を送る
+    if (savedMemoCount > 0) {
+      io.to(user.id).emit('newmemo', datestamp.toISOString().split('T')[0]);
+    } else {
+      // もしその日のメモが全削除なら、逆に「削除通知」を送ってUI更新する
+      io.to(user.id).emit('deletememo', datestamp.toISOString().split('T')[0]);
+    }
 
     res.status(200).send('保存成功');
   } catch (error) {
@@ -1036,6 +1230,65 @@ app.post('/save-memo',logincheck, async (req, res) => {
     res.status(500).send('保存失敗');
   }
 });
+  app.post('/add-memo', logincheck, async (req, res) => {
+  const email = req.session.logined;
+  const { date, memoList } = req.body; // ← memoList は配列
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  try {
+    const datestamp = new Date(`${normalizeDate(date)}T00:00:00.000Z`);
+    if (isNaN(datestamp)) {
+      return res.status(400).send('無効な日付です');
+    }
+
+    // その日のPostを探す（なければ作る）
+    let post = await prisma.post.findFirst({
+      where: { userId: user.id, createdAt: datestamp },
+    });
+
+    if (!post) {
+      post = await prisma.post.create({
+        data: {
+          userId: user.id,
+          postedBy: user.username,
+          createdAt: datestamp,
+          content: "",
+        },
+      });
+    }
+
+
+    let savedMemoCount = 0;
+
+    if (Array.isArray(memoList)) {
+      const nonEmptyMemos = memoList.filter(text => text.trim() !== "");
+      if (nonEmptyMemos.length > 0) {
+        await prisma.memo.createMany({
+          data: nonEmptyMemos.map((text) => ({
+            content: text,
+            postId: post.id,
+          })),
+        });
+        savedMemoCount = nonEmptyMemos.length;
+      }
+    }
+
+    // 非空メモがある場合のみ newmemo を送る
+    if (savedMemoCount > 0) {
+      io.to(user.id).emit('newmemo', datestamp.toISOString().split('T')[0]);
+    } else {
+      // もしその日のメモが全削除なら、逆に「削除通知」を送ってUI更新する
+      io.to(user.id).emit('deletememo', datestamp.toISOString().split('T')[0]);
+    }
+
+    res.status(200).send('保存成功');
+  } catch (error) {
+    console.error('DBエラー:', error);
+    res.status(500).send('保存失敗');
+  }
+});
+  
+
   
 
 
@@ -1075,47 +1328,49 @@ app.post('/save-memo',logincheck, async (req, res) => {
   
 
 })
-app.get('/getchat',logincheck,loginchatcheck, async (req, res) => {
+app.get('/getchat', logincheck, loginchatcheck, async (req, res) => {
   try {
     if (!req.query.date) {
       res.status(400).send('dateパラメータが必要です');
       return;
     }
+
     const normalizedDate = normalizeDate(req.query.date);
     const start = new Date(normalizedDate + 'T00:00:00.000Z');
     const end = new Date(normalizedDate + 'T23:59:59.999Z');
+
     const email = req.session.logined;
-    const user = await prisma.user.findUnique({where: {email}});
-    const chatroomid=req.session.chatplay
-    const chatrooms =await prisma.chatroom.findUnique({where:{id:chatroomid}})
-    if (isNaN(start) || isNaN(end)) {
-      socket.emit('エラー');
-      return;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    const chatroomid = req.session.chatplay;
+    const chatroom = await prisma.chatroom.findUnique({ where: { id: chatroomid } });
+
+    if (!chatroom) {
+      return res.status(404).send('チャットルームが見つかりません');
     }
-    const result =await prisma.chatmessage.findMany({
-      where:{
-        date:{
-          gte: start,
-          lt: end,
-        },
-        chatroom: {
-          is:{
-            id: chatrooms.id
-          }
-        }
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).send('無効な日付です');
+    }
+
+    const result = await prisma.chatmessage.findMany({
+      where: {
+        date: { gte: start, lt: end },
+        chatroomId: chatroom.id, 
       },
       include: {
+        user: { select: { username: true, email: true } },
         reactions: {
           include: {
-            user: { select: { username: true ,email:true} }
-          }
-        }
-      }
-
+            user: { select: { username: true, email: true } },
+          },
+        },
+      },
     });
-    console.log(`ユーザ:${result.postedBy}`)
-    res.json({chat:result,
-              user:user,
+    console.log(`取得件数: ${result.length}`);
+
+    res.json({
+      chat: result,
+      user, // ログイン中のユーザー情報
     });
     
   } catch (error) {
@@ -1123,6 +1378,7 @@ app.get('/getchat',logincheck,loginchatcheck, async (req, res) => {
     res.status(500).send('失敗');
   }
 });
+
 app.get('/home',logincheck,async(req,res)=>{
   try{
     const email = req.session.logined;
@@ -1151,7 +1407,7 @@ app.get('/home',logincheck,async(req,res)=>{
     res.status(500).send('フレンド取得失敗');
   }
 })
-app.get('/api/friends', async (req, res) => {
+app.get('/api/friends',logincheck, async (req, res) => {
   const email = req.session.logined;
   const user = await prisma.user.findUnique({ where: { email } });
   

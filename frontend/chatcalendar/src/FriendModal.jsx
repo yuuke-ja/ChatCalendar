@@ -30,8 +30,8 @@ export default function FriendModal({ socket, onClose }) {
   };
 
   return (
-    <div className="member-overlay">
-      <div className="member">
+    <div className="friend-overlay">
+      <div className="friend">
         <button className="close" onClick={onClose}>✕</button>
         <h2>Friend</h2>
         <input

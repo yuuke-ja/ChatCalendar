@@ -22,6 +22,7 @@ model User {
   friends1     Friend[]     @relation("User1")
   friends2     Friend[]     @relation("User2")
   posts        Post[]
+  chatmessages  Chatmessage[]
   reactions  Reaction[] 
 }
 
@@ -41,11 +42,19 @@ model Post {
   postedBy  String   @db.VarChar(255)
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
+  memos     Memo[] 
+}
+model Memo {
+  id        Int      @id @default(autoincrement())
+  content   String
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
 }
 
 model Chatroom {
   id           String        @id @default(uuid())
   chatid       String
+  authority    Boolean @default(false)
   chatmember   Chatmember[]
   chatmessages Chatmessage[]
   countbatches Countbatch[]
@@ -55,8 +64,10 @@ model Chatmember {
   id         Int      @id @default(autoincrement())
   userId     Int
   chatroomId String
+  role       String   @default("member")
   chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
+  @@unique([chatroomId, userId])  
 }
 
 model Chatmessage {
@@ -67,7 +78,10 @@ model Chatmessage {
   date       DateTime
   createdAt  DateTime @default(now())
   chatroomId String
-  postedBy   String
+  userId     Int  
+  important  Boolean  @default(false)
+  deleted    Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id])
   chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
   reactions  Reaction[] 
 }
