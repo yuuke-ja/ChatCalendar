@@ -26,6 +26,7 @@ export default function App() {
   const [authorityOn, setAuthorityOn] = useState(false);
   const [UserinformationOpen, setUserinformationOpen] = useState(false);
   const [Roomdetails, setRoomdetails] = useState(false)
+  const [viewdatelist, setviewdatelist] = useState(false)
   const [calendarStartDate, setCalendarStartDate] = useState(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
@@ -129,6 +130,7 @@ export default function App() {
         ホーム</button>
 
       <button className="Userinformation" onClick={() => setUserinformationOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#999999"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" /></svg></button>
+      <button className="datelist-button" onClick={() => setviewdatelist(true)}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#666666"><path d="M438-226 296-368l58-58 84 84 168-168 58 58-226 226ZM200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z" /></svg></button>
 
       <button className="userinvite" onClick={() => (window.location.href = "/userinvite")}>招待</button>
     </header>
@@ -288,19 +290,18 @@ export default function App() {
         });
 
         socket.on("countbatchupdate", ({ chatroomId: updateroomId, date, count }) => {
-          console.log("countbatchupdate 受信:", date);
-          console.log("比較:", chatroomIdRef.current, typeof chatroomIdRef.current, updateroomId, typeof updateroomId);
-          if (chatroomIdRef.current == updateroomId && selectedDateRef.current == date) {
-            setcountbatch(prev => ({
-              ...prev,
-              [date]: 0
-            }))
+          const activeRoom = chatroomIdRef.current;
+          const activeDate = selectedDateRef.current;
+
+          // 閲覧中は常に既読扱い（UIもDBも0）
+          if (String(activeRoom) === String(updateroomId) && activeDate === date) {
+            setcountbatch(prev => ({ ...prev, [date]: 0 }));
             setallcountbatch(prev => {
-              const prevcount = { ...prev };
-              const key = String(chatroomId);
-              if (!prevcount[key]) prevcount[key] = {};
-              prevcount[key][date] = 0;
-              return prevcount;
+              const next = { ...prev };
+              const key = String(updateroomId);
+              if (!next[key]) next[key] = {};
+              next[key][date] = 0;
+              return next;
             });
             fetch('/api/deletecount', {
               method: 'POST',
@@ -309,6 +310,8 @@ export default function App() {
             }).catch(err => console.error('deletecount error', err));
             return;
           }
+
+          // 閲覧していないときだけサーバ値を反映
           setallcountbatch(prev => {
             const next = { ...prev };
             const key = String(updateroomId);
@@ -316,12 +319,11 @@ export default function App() {
             next[key][date] = count;
             return next;
           });
-          if (chatroomIdRef.current != updateroomId) return;
-          setcountbatch(prev => ({
-            ...prev,
-            [date]: count
-          }))
-        })
+          if (String(activeRoom) === String(updateroomId)) {
+            setcountbatch(prev => ({ ...prev, [date]: count }));
+          }
+        });
+
         const countres = await fetch('/api/mycountbatch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -432,6 +434,55 @@ export default function App() {
           </div>
         </div>
       )}
+      {viewdatelist && (
+        <div
+          className="datelist-overlay"
+          onClick={() => setviewdatelist(false)}
+        >
+          <div
+            className="datelist-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="datelist-header">
+              <span>日付一覧</span>
+              <button
+                type="button"
+                className="datelist-close"
+                onClick={() => setviewdatelist(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <ul className="datelist-list">
+              {memodate.length === 0 && (
+                <li className="datelist-empty">表示できる日付はありません</li>
+              )}
+              {memodate.map((d) => (
+                <li
+                  key={d}
+                  className="datemove"
+                  onClick={() => {
+                    const dt = new Date(d + "T00:00:00");
+                    setCalendarStartDate(() => {
+                      const nd = new Date(dt);
+                      localStorage.setItem("calendarStartDate", nd.toISOString());
+                      return nd;
+                    });
+                    setSelectedDate(d);
+                    setviewdatelist(false);
+                  }}
+                >
+                  <span>{d}</span>
+                  {countbatch[d] > 0 && (
+                    <span className="datelistbatch">{countbatch[d]}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
 
 
       {UserinformationOpen && (
