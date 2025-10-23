@@ -894,12 +894,13 @@ io.on('connection', async(socket) => {
                 date: datestamp
               }
             },
-            update: { count: { increment: 1 } },
+            update: { count: { increment: 1 }, chatmessageId: { push: saved.id } },
             create: {
               userId: m.userId,
               chatroomId: roomId,
               date: datestamp,
-              count: 1
+              count: 1,
+              chatmessageId: [saved.id]
             }
           });
           io.to(m.userId).emit('countbatchupdate', {
@@ -934,6 +935,36 @@ io.on('connection', async(socket) => {
       data: { deleted: true, important: false, content: "", imageUrl: null }
     });
     io.to(roomId).emit("message-deleted", { messageId });
+
+    const affected = await prisma.countbatch.findMany({
+      where: {
+        chatroomId: roomId,
+        date: message.date,
+        chatmessageId: { has: messageId }
+      }
+    });
+
+    await Promise.all(
+      affected.map(async (batch) => {
+        const newList = batch.chatmessageId.filter((id) => id !== messageId);
+        const newCount = Math.max(0, batch.count - 1);
+
+        await prisma.countbatch.update({
+          where: { id: batch.id },
+          data: {
+            chatmessageId: newList,
+            count: newCount
+          }
+        });
+
+        const dateIso = message.date.toISOString().split("T")[0];
+        io.to(batch.userId).emit("countbatchupdate", {
+          chatroomId: roomId,
+          date: dateIso,
+          count: newCount
+        });
+      })
+    );
 
     const remaining = await prisma.chatmessage.count({
       where: {

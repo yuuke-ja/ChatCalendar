@@ -92,6 +92,7 @@ model Countbatch {
   chatroomId String
   date       DateTime
   count      Int      @default(0)
+  chatmessageId Int[] @default([])
   updatedAt  DateTime @updatedAt
   createdAt  DateTime @default(now())
   chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
