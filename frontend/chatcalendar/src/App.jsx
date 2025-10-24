@@ -4,6 +4,7 @@ import ChatCalendar from "./ChatCalendar.jsx";
 import ChatModal from "./ChatModal.jsx";
 import FriendModal from "./FriendModal.jsx";
 import NewChatModal from "./NewChatModal.jsx";
+import InviteModal from "./InviteModal.jsx";
 import "./App.css";
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
   const [UserinformationOpen, setUserinformationOpen] = useState(false);
   const [Roomdetails, setRoomdetails] = useState(false)
   const [viewdatelist, setviewdatelist] = useState(false)
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [calendarStartDate, setCalendarStartDate] = useState(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
@@ -121,18 +123,8 @@ export default function App() {
         </span>
         <button id="next" onClick={onNext}>▶</button>
       </div>
-
-      <button className="home" onClick={() => (window.location.href = "/home")}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000" className="size-6">
-          <path d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z" />
-          <path d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z" />
-        </svg>
-        ホーム</button>
-
       <button className="Userinformation" onClick={() => setUserinformationOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#999999"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" /></svg></button>
       <button className="datelist-button" onClick={() => setviewdatelist(true)}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#666666"><path d="M438-226 296-368l58-58 84 84 168-168 58 58-226 226ZM200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z" /></svg></button>
-
-      <button className="userinvite" onClick={() => (window.location.href = "/userinvite")}>招待</button>
     </header>
   );
   const selectChatroom = async (chatId) => {
@@ -377,13 +369,9 @@ export default function App() {
     <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}`}>
       <aside className="sidebar">
         <button className="Room-details" onClick={() => setRoomdetails(true)}>ルーム詳細</button>
-        <button
-          className="participants-btn"
-          onClick={() => setmembermodal(true)}
-        >参加人数: {participants.length}人</button>
+        <button className="participants-btn" onClick={() => setmembermodal(true)} >参加人数: {participants.length}人</button>
         <button onClick={() => setNewChatModalOpen(true)}>新規チャット作成</button>
-        <button
-          type="button" onClick={() => window.location.href = "/privatecalendar"}>プライベートカレンダー</button>
+        <button type="button" onClick={() => window.location.href = "/privatecalendar"}>プライベートカレンダー</button>
         <h2>チャットカレンダー</h2>
         {chatList.map(chat => {
           const counts = allcountbatch[chat.id] || {};
@@ -423,7 +411,7 @@ export default function App() {
 
             <div className="room-actions">
               <button onClick={() => setmembermodal(true)}>参加者を見る</button>
-              <button onClick={() => (window.location.href = "/userinvite")}>招待する</button>
+              <button onClick={() => setInviteModalOpen(true)}>招待</button>
               {myrole === "leader" && (
                 <button onClick={chengeauthority}>
                   権限を{authorityOn ? "OFFにする" : "ONにする"}
@@ -468,6 +456,25 @@ export default function App() {
                       localStorage.setItem("calendarStartDate", nd.toISOString());
                       return nd;
                     });
+                    setcountbatch((count) => {
+                      const updated = { ...count };
+                      updated[d] = 0;
+                      return updated;
+                    });
+                    setallcountbatch((prev) => {
+                      const prevcount = { ...prev };
+                      const key = String(chatroomId);
+                      if (!prevcount[key]) prevcount[key] = {};
+                      prevcount[key][d] = 0;
+                      return prevcount;
+                    });
+
+                    fetch("/api/deletecount", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ chatroomId, date: d }),
+                    });
+
                     setSelectedDate(d);
                     setviewdatelist(false);
                   }}
@@ -532,8 +539,17 @@ export default function App() {
       }
       {friendModalOpen && (
         <FriendModal
-          socket={socketRef.current}
+          socketRef={socketRef}
+          socketReady={socketReady}
+          myEmail={myEmail}
           onClose={() => setFriendModalOpen(false)}
+        />
+      )}
+      {inviteModalOpen && (
+        <InviteModal
+          onClose={() => setInviteModalOpen(false)}
+          participants={participants}
+          myEmail={myEmail}
         />
       )}
       {newChatModalOpen && (

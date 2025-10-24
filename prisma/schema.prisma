@@ -24,6 +24,8 @@ model User {
   posts        Post[]
   chatmessages  Chatmessage[]
   reactions  Reaction[] 
+  favorites    Favorite[]   @relation("FavoriteUser")
+  favoritedBy  Favorite[]   @relation("FavoriteTarget")
 }
 
 model Friend {
@@ -34,6 +36,17 @@ model Friend {
 
   @@id([user1Id, user2Id])
 }
+model Favorite {
+  id        Int   @id @default(autoincrement())
+  userId    Int   
+  targetId  Int  
+
+  user   User @relation("FavoriteUser", fields: [userId], references: [id])
+  target User @relation("FavoriteTarget", fields: [targetId], references: [id])
+
+  @@unique([userId, targetId])
+}
+
 
 model Post {
   id        Int      @id @default(autoincrement())

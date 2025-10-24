@@ -1101,6 +1101,39 @@ io.on('connection', async(socket) => {
 
     }
   });
+  socket.on("favorite-save", async ({ targetEmail, myEmail }) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { email: myEmail } });
+      const target = await prisma.user.findUnique({ where: { email: targetEmail } });
+
+      if (!target) {
+        socket.emit("favorite-saved", { success: false, reason: "notfound" });
+        return;
+      }
+
+      await prisma.favorite.create({
+        data: { userId: user.id, targetId: target.id },
+      });
+
+      // 🔹 送った本人のソケットだけに返す
+      io.to(socket.id).emit("favorite-added", {
+        success: true,
+        username: target.username,
+        email: target.email,
+      });
+
+    } catch (e) {
+      if (e.code === "P2002") {
+        io.to(socket.id).emit("favorite-added", { success: false, reason: "already" });
+      } else {
+        console.error("お気に入り追加エラー:", e);
+        io.to(socket.id).emit("favorite-added", { success: false, reason: "error" });
+      }
+    }
+  });
+
+
+
 
   socket.on("delete-member", async ({ chatroomId, userEmail }) => {
     try {
@@ -1172,6 +1205,42 @@ io.on('connection', async(socket) => {
     socket.request.session.save();
     io.to(user.id).emit("reflection-username", updateuser.username);
   });
+//招待真
+app.post('/api/invite', logincheck, loginchatcheck, async (req, res) => {
+  try {
+    const chatroomId = req.session.chatplay;
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ ok: false, reason: 'bad_request' });
+    const room = await prisma.chatroom.findUnique({ where: { id: chatroomId } });
+    if (!room) return res.status(404).json({ ok: false, reason: 'room_not_found' });
+    const target = await prisma.user.findUnique({ where: { email } });
+    if (!target) return res.status(200).json({ ok: false, reason: 'notfound' });
+    const exists = await prisma.chatmember.findFirst({
+      where: { chatroomId, userId: target.id },
+      select: { userId: true }
+    });
+    if (exists) return res.status(200).json({ ok: false, reason: 'already' });
+    await prisma.chatmember.create({
+      data: { chatroomId, userId: target.id }
+    });
+    const members = await prisma.chatmember.findMany({
+      where: { chatroomId },
+      include: { user: { select: { username: true, email: true } } }
+    });
+    const participants = members.map(m => ({
+      name: m.user.username,
+      email: m.user.email,
+      role: m.role
+    }));
+    io.to(chatroomId).emit('participants', { participants });
+    io.to(target.id).emit('invitelist', { chatid: room.chatid, id: room.id });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('api/invite error:', e);
+    return res.status(500).json({ ok: false, reason: 'error' });
+  }
+});
+
 
 
   //ユーザを招待
@@ -1436,6 +1505,25 @@ app.get('/getchat', logincheck, loginchatcheck, async (req, res) => {
   } catch (error) {
     console.error('データ取り出し失敗', error);
     res.status(500).send('失敗');
+  }
+});
+app.get('/api/favorite', async (req, res) => {
+  try {
+    const email = req.session.useremail;
+    if (!email) return res.status(401).json({ error: 'ログインが必要です' });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+
+    const list = await prisma.favorite.findMany({
+      where: { userId: user.id },
+      include: { target: { select: { username: true, email: true } } },
+    });
+
+    res.json(list.map(f => f.target));
+  } catch (err) {
+    console.error('お気に入り一覧取得エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 

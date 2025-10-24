@@ -93,12 +93,11 @@ td:last-child{ color:blue; }
 #chatmodal {
   position: fixed;
   top: 60px;
-  right:0;
+  right: 0;
   width: 40%;
   height: 100%;
   background: linear-gradient(to bottom, rgba(233, 233, 233, 0.199), rgba(172, 172, 172, 0.045));
-  border: 1px solid rgb(23, 242, 198);
-  box-shadow: 0 0 20px rgb(23, 242, 198);
+  border-left: 2px solid rgb(23, 242, 198); /* ← 左だけ線を出す */
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -111,6 +110,7 @@ td:last-child{ color:blue; }
   justify-content: space-between; /* 左右に広げる */
   position: relative;        /* 中央ボタンを絶対配置するため */
   padding: 0 12px;           /* 左右余白 */
+  border-bottom: 1px solid #ccc;
 }
 
 #modal-date {
@@ -1370,49 +1370,151 @@ button {
   align-items: center;
   z-index: 2000;          
 }
-.friend{
-  position: fixed;      
-  top: 50%;
-  left: 50%;
-  width: 25%;
-  height: 70%;
-  transform: translate(-50%, -50%); 
-  background: white;  
-  border: 1px solid #ccc;
-  padding: 20px;
-  z-index: 1000;         
+.friend-modal {
+  width: 420px;
+  max-width: 90%;
+  height: 520px;
+  max-height: 85%;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px 24px 28px;
+  box-shadow: 0 24px 60px rgba(25, 38, 94, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
 }
 
-.friend {
-  margin-top: 0;
-}
-
-.friend button {
-  margin-top: 10px;
-}
-.friend-input {
-  width: 80%;          
-  padding: 8px 12px;   
-  font-size: 16px;     
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;
-}
-.close{
-  position: absolute;
+.friend-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  top: 2px;
-  right: 3px;
-  width: 50px;
-  height: 50px;
-  /* color: #fff; */
-  background: #fff;
-  /* border-radius: 50%; */
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.friend-header h2 {
+  font-size: 1.4rem;
+  color: #2f3567;
+  font-weight: 700;
+}
+
+.friend-close {
+  border: none;
+  background: rgba(47, 53, 103, 0.08);
+  color: #2f3567;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
   cursor: pointer;
-  /* border: none; */
-  font-size: 20px;
+  transition: background 0.2s ease;
+}
+
+.friend-close:hover {
+  background: rgba(47, 53, 103, 0.18);
+}
+
+.favorite-message {
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(70, 137, 255, 0.12);
+  border: 1px solid rgba(70, 137, 255, 0.18);
+  border-radius: 10px;
+  color: #2f3567;
+  font-size: 0.9rem;
+}
+
+.friend-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.friend-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cfd5f3;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.friend-input:focus {
+  outline: none;
+  border-color: #7981ff;
+  box-shadow: 0 0 0 4px rgba(121, 129, 255, 0.18);
+}
+
+.friend-add {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(120deg, #5d6bff, #7c8dff);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.friend-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(93, 107, 255, 0.25);
+}
+
+.friend-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(47,53,103,0.05), rgba(47,53,103,0.14), rgba(47,53,103,0.05));
+}
+
+.friend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
+}
+
+.friend-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.friend-list::-webkit-scrollbar-thumb {
+  background: rgba(47, 53, 103, 0.12);
+  border-radius: 999px;
+}
+
+.friend-empty {
+  color: #8d93b5;
+  font-size: 0.92rem;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.friend-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(205, 213, 243, 0.7);
+  box-shadow: 0 6px 16px rgba(59, 65, 109, 0.08);
+}
+
+.friend-name {
+  font-weight: 600;
+  color: #333a66;
+  font-size: 1rem;
+}
+
+.friend-email {
+  font-size: 0.86rem;
+  color: #8d93b5;
 }
 
 
@@ -1505,6 +1607,128 @@ button {
 .room-actions button:hover {
   background-color: #f0f0f0;
 }
+/* === 招待モーダル === */
+.invite-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.invite-modal {
+  width: 600px;            
+  height: 480px;        
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  padding: 24px 28px;
+  overflow-y: auto;        
+  position: relative;
+}
+
+.invite-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.invite-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.invite-message {
+  color: #0066cc;
+  margin: 0.5rem 0;
+}
+
+.invite-input-row {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.invite-input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.invite-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #f6f204a2;
+  cursor: pointer;
+}
+
+.invite-divider {
+  height: 1px;
+  background: #eee;
+  margin: 12px 0;
+}
+
+.invite-subtitle {
+  margin: 6px 0 8px;
+}
+
+.invite-loading,
+.invite-empty {
+  color: #666;
+}
+
+.invite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invite-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.invite-user {
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-name {
+  font-weight: 600;
+}
+
+.invite-email {
+  color: #777;
+  font-size: 0.9em;
+}
+
+.invite-mini-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #17f2c6;
+  cursor: pointer;
+}
+
+.invite-mini-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 
 
 
