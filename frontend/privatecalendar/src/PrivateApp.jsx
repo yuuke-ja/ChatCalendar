@@ -266,6 +266,7 @@ export default function App() {
               <button
                 onClick={async () => {
                   socketRef.current.emit("update-username", myUsername)
+                  alert("ユーザー名を変更しました！");
                 }}
               >
                 変更
