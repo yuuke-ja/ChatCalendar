@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function MemoModal({ selectedDate, closeModal }) {
   const [memoList, setMemoList] = useState([]);
+  const textareaRefs = useRef([]);
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -22,6 +23,18 @@ export default function MemoModal({ selectedDate, closeModal }) {
     newList[index] = value;
     setMemoList(newList);
   };
+
+  const autoResizeAll = () => {
+    textareaRefs.current.forEach((el) => {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    });
+  };
+
+  useEffect(() => {
+    autoResizeAll();
+  }, [memoList]);
 
   const handleSave = async () => {
     // 空白や空欄を除く
@@ -56,8 +69,10 @@ export default function MemoModal({ selectedDate, closeModal }) {
             key={i}
             rows="3"
             cols="40"
+            ref={(el) => (textareaRefs.current[i] = el)}
             value={text}
             onChange={(e) => handleChange(i, e.target.value)}
+            onInput={autoResizeAll}
             style={{ display: "block", marginBottom: "8px" }}
           />
         ))}
