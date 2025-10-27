@@ -44,8 +44,7 @@ export default function MemoModal({ selectedDate, closeModal }) {
       <div className="chatmodal-content">
         <button
           className="close"
-          onClick={async () => {
-            await handleSave();
+          onClick={() => {
             closeModal();
           }}
         >✕</button>
