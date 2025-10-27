@@ -72,7 +72,7 @@ export default function InviteModal({ onClose, participants = [], myEmail }) {
     <div className="invite-overlay" onClick={onClose}>
       <div className="invite-modal" onClick={e => e.stopPropagation()}>
         <div className="invite-header">
-          <h2>メンバー招待</h2>
+          <h2>ユーザ招待</h2>
           <button className="invite-close" onClick={onClose}>✕</button>
         </div>
 
