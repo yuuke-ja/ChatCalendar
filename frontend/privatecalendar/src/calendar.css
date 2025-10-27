@@ -640,15 +640,13 @@ a{ color:black; text-decoration:none; }
 }
 
 .sidebar-action-link {
-  background: linear-gradient(90deg, rgba(255, 241, 221, 0.95), rgba(255, 224, 186, 0.95));
-  color: #955d18;
-  border-color: rgba(255, 188, 107, 0.35);
+  background: linear-gradient(90deg, #2c7be5, #4ba5ff);
+  color: #fff;
 }
 
-.sidebar-action-link:hover {
-  background: linear-gradient(90deg, rgba(255, 233, 200, 0.95), rgba(255, 212, 160, 0.95));
-  box-shadow: 0 8px 18px rgba(149, 93, 24, 0.22);
-}
+/*.sidebar-action-link:hover {
+  background: rgba(222, 238, 234, 0.97);
+}*/
 
 .sidebar-chatlist-body {
   margin-top: 4px;
