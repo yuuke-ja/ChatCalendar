@@ -579,7 +579,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ date: date, memoList: [deleteTarget.content] }),
                             });
-                            alert("プライベートカレンダーに保存しました");
+                            alert("マイカレンダーに保存しました");
                           } catch (err) {
                             console.error(err);
                             alert("保存に失敗しました");
