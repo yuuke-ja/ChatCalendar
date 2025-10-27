@@ -68,30 +68,31 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     if (!socket) return;
 
     const reactionHandler = (data) => {
+      if (!data || String(data.chatroomId) !== String(roomId)) return;
       console.log("ユーザ情報", data.reaction);
-      setChatList((prev) =>
-        prev.map((chat) => {
+      setChatList((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.map((chat) => {
           if (chat.id === data.reaction.messageId) {
             if (data.type === "true") {
               return { ...chat, reactions: [...(chat.reactions || []), data.reaction] };
-            } else {
-              return {
-                ...chat,
-                reactions: (chat.reactions || []).filter((r) => r.id !== data.reaction.id),
-              };
             }
+            return {
+              ...chat,
+              reactions: (chat.reactions || []).filter((r) => r.id !== data.reaction.id),
+            };
           }
           return chat;
-        })
-      );
+        });
+      });
     };
 
     socket.on("newreaction", reactionHandler);
     return () => socket.off("newreaction", reactionHandler);
-  }, [socket]);
+  }, [socket, roomId]);
 
   useEffect(() => {
-    if (!selectedDate) return;
+    if (!selectedDate || !roomId) return;
     (async () => {
       try {
         const res = await fetch(`/getchat?date=${selectedDate}`);
@@ -102,11 +103,12 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         console.error("チャット取得失敗:", e);
       }
     })();
-  }, [selectedDate]);
+  }, [selectedDate, roomId]);
   useEffect(() => {
     if (!socket) return;
     const onDeleted = ({ messageId }) => {
       setChatList(prev => {
+        if (!Array.isArray(prev)) return prev;
         const updated = prev.map(c =>
           c.id === messageId ? { ...c, deleted: true, content: "", imageUrl: null, important: false } : c
         );
@@ -153,15 +155,19 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     if (!socket) return;
 
     const handler = (data) => {
-      if (data?.date === selectedDate && data?.chat) {
-        setChatList((prev) => [...prev, data.chat]);//コピーして保存
+      if (!data || String(data.chatroomId) !== String(roomId)) return;
+      if (data.date === selectedDate && data.chat) {
+        setChatList((prev) => {
+          const next = Array.isArray(prev) ? [...prev, data.chat] : [data.chat];
+          return next;
+        });
         setTimeout(scrollToBottom, 50);
       }
     };
 
     socket.on("newchat", handler);
     return () => socket.off("newchat", handler);
-  }, [socket, selectedDate]);
+  }, [socket, selectedDate, roomId]);
 
   const onPickImage = (e) => {
     const file = e.target.files?.[0] || null;
@@ -224,7 +230,25 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
           <button
             className="important-btn"
             onClick={() => setShowImportantList(prev => !prev)}
-          >重要 {importantMessages.length}</button>
+          >
+            <span className="important-btn-icon" aria-hidden="true">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="22"
+                width="22"
+                viewBox="0 0 960 960"
+              >
+                <path
+                  d="M480 72l126 255 281 41-203 197 48 280-252-132-252 132 48-280-203-197 281-41L480 72z"
+                  fill="gold"
+                  stroke="gold"
+                  strokeWidth="30"
+                  strokeLinejoin="miter"
+                />
+              </svg>
+            </span>
+            <span className="important-btn-count">{importantMessages.length}</span>
+          </button>
         )}
         <button onClick={closeModal}>閉じる</button>
       </div>
@@ -317,7 +341,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
               <div key={c.id} id={`msg-${c.id}`} className={userclass}>
                 {isDeleted ? (
                   // 削除済みメッセージ
-                  <div className="content deletechat">
+                  <div className="content-deletechat">
                     {c.user.username} さんが {new Date(c.createdAt).toLocaleString()} の投稿を削除しました
                   </div>
                 ) : (
@@ -334,38 +358,27 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                         onContextMenu={(e) => {
                           e.preventDefault();
 
-                          // 自分の吹き出し & 削除されてない場合
-                          if (c.email === myEmail && !c.deleted) {
-                            // 重要メッセージなら両方出す
-                            if (c.important) {
-                              setDeleteTarget({
-                                id: c.id,
-                                x: e.clientX,
-                                y: e.clientY,
-                                action: "both", // 両方出す用
-                                content: c.content,
-                              });
-                            } else {
-                              setDeleteTarget({
-                                id: c.id,
-                                x: e.clientX,
-                                y: e.clientY,
-                                action: "delete",
-                              });
-                            }
-                            return;
-                          }
+                          if (c.deleted) return;
 
-
-                          if (c.important) {
+                          // 自分のメッセージ  削除も保存も出す
+                          if (c.email === myEmail) {
                             setDeleteTarget({
                               id: c.id,
                               x: e.clientX,
                               y: e.clientY,
-                              action: "calendar",
+                              action: "both", // 両方出す
                               content: c.content,
                             });
+                            return;
                           }
+                          // 他人のメッセージ 保存のみ
+                          setDeleteTarget({
+                            id: c.id,
+                            x: e.clientX,
+                            y: e.clientY,
+                            action: "calendar", // 保存だけ
+                            content: c.content,
+                          });
                         }}
                       >
                         {c.content}
@@ -536,6 +549,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                       border: "1px solid #ccc",
                       borderRadius: "4px",
                       zIndex: 9999,
+                      fontSize: "10px",
                     }}
                   >
                     {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
@@ -585,7 +599,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
             );
           })
         ) : (
-          <p>この日のチャットはありません。</p>
+          <p>チャットはありません。</p>
         )}
       </div>
 
@@ -641,10 +655,27 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         />
         {canSeeImportantButton && (
           <button
-            className={Important ? "important-on" : "important-off"}
+            className="important-star"
             onClick={toggleImportant}
-          ></button>
+            aria-label="重要マーク"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              height="28px"
+              width="28px"
+              viewBox="0 0 960 960"
+            >
+              <path
+                d="M480 72l126 255 281 41-203 197 48 280-252-132-252 132 48-280-203-197 281-41L480 72z"
+                fill={Important ? "gold" : "none"}
+                stroke={Important ? "gold" : "#666"}
+                strokeWidth="30"
+                strokeLinejoin="miter"
+              />
+            </svg>
+          </button>
         )}
+
         <input
           id="image-upload"
           type="file"

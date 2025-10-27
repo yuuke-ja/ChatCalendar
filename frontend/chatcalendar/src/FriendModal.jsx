@@ -43,6 +43,15 @@ export default function FriendModal({ socketRef, socketReady, myEmail, onClose }
       setText("");
       setTimeout(() => setMessage(""), 3000);
     });
+    socket.on("favorite-rename", ({ targetEmail, newName }) => {
+      setFriendList(prev =>
+        prev.map(f =>
+          f.email === targetEmail ? { ...f, username: newName } : f
+        )
+      );
+    });
+
+
 
     return () => {
       socket.off("favorite-added");

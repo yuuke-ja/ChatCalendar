@@ -64,7 +64,7 @@ export default function MemoModal({ selectedDate, closeModal }) {
         ))}
 
         <button onClick={handleAddMemo}>＋ 追加</button>
-        <button onClick={handleSave}>保存</button>
+        <button className="memo-save" onClick={handleSave}>保存</button>
       </div>
     </div>
   );

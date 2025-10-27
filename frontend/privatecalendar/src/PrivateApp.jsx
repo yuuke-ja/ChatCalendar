@@ -67,8 +67,28 @@ export default function App() {
           {calendarStartDate.getFullYear()}年{calendarStartDate.getMonth() + 1}月
         </span>
         <button id="next" onClick={onNext}>▶</button>
+        <button
+          id="today"
+          onClick={() => {
+            const today = new Date();
+            setCalendarStartDate(today);
+            localStorage.setItem("calendarStartDate", today.toISOString());
+          }}
+          style={{
+            marginLeft: "10px",
+            backgroundColor: "#33c595",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "4px 10px",
+            cursor: "pointer",
+          }}
+        >
+          今日
+        </button>
       </div>
-      <button className="Userinformation" onClick={() => setUserinformationOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#999999"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" /></svg></button>
+      <button className="Userinformation" onClick={() => setUserinformationOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#666666"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" /></svg></button>
+      <button className="checkuser" onClick={() => setFriendModalOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#666666"><path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Zm0-108q96-86 158-147.5t98-107q36-45.5 50-81t14-70.5q0-60-40-100t-100-40q-47 0-87 26.5T518-680h-76q-15-41-55-67.5T300-774q-60 0-100 40t-40 100q0 35 14 70.5t50 81q36 45.5 98 107T480-228Zm0-273Z" /></svg></button>
     </header>
   );
   const selectChatroom = async (chatId) => {
@@ -182,21 +202,46 @@ export default function App() {
   return (
     <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}`}>
       <aside className="sidebar">
-        <button onClick={() => setNewChatModalOpen(true)}>新規チャット作成</button>
-        <button type="button" onClick={() => window.location.href = "/privatecalendar"}>プライベートカレンダー</button>
-        <h2>チャットカレンダー</h2>
-        {chatList.map(chat => {
-          const counts = allcountbatch[chat.id] || {};
-          const roomcount = Object.values(counts).filter(c => c > 0).length;
-          return (
-            <button key={chat.id} onClick={() => selectChatroom(chat.id)}>
-              {chat.chatid}
-              {roomcount > 0 && <span className="chatroombatch">{roomcount}</span>}
-            </button>
-          )
-        })}
+        <div className="sidebar-section sidebar-top">
+          <div className="sidebar-section-header">
+            <h3 className="sidebar-heading">マイページ</h3>
+            <span className="sidebar-subtext">個人情報とマイカレンダー</span>
+          </div>
+          <div className="sidebar-action-group">
+            <button className="sidebar-action-button" onClick={() => setUserinformationOpen(true)}>個人情報</button>
+            <button className="sidebar-action-button" onClick={() => setFriendModalOpen(true)}>お気に入り</button>
+            <button type="button" className="sidebar-action-button sidebar-action-link" onClick={() => window.location.href = "/privatecalendar"}>マイカレンダー</button>
+          </div>
+        </div>
+        <div className="sidebar-section sidebar-chatlist">
+          <div className="sidebar-section-header">
+            <h3 className="sidebar-heading">ルームリスト</h3>
+            <span className="sidebar-subtext">{chatList.length}件</span>
+          </div>
+          <div className="sidebar-chatlist-body">
+            {chatList.map(chat => {
+              const view = chat.id === chatroomId;
+              const counts = allcountbatch[chat.id] || {};
+              const roomcount = Object.values(counts).filter(c => c > 0).length;
+              return (
+                <button
+                  key={chat.id}
+                  className={`sidebar-chat-button${view ? " is-active" : ""}`}
+                  onClick={() => selectChatroom(chat.id)}
+                >
+                  <span className="sidebar-chat-name">{chat.chatid}</span>
+                  {roomcount > 0 && <span className="chatroombatch">{roomcount}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        <button onClick={() => setFriendModalOpen(true)}>フレンド</button>
+        <div className="sidebar-section sidebar-bottom">
+          <button className="sidebar-primary-button" onClick={() => setNewChatModalOpen(true)}>
+            ルーム作成
+          </button>
+        </div>
       </aside>
       {UserinformationOpen && (
         <div

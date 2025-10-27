@@ -651,6 +651,7 @@ app.get('/api/chatcalendar-info', logincheck,loginchatcheck, async (req, res) =>
   res.json({
     chatroomId,
     authority: chatroom.authority,
+    invitationauthority:chatroom.invitationauthority,
     username,
     useremail,
     chatroomname: chatroom.chatid,
@@ -1037,6 +1038,30 @@ io.on('connection', async(socket) => {
       console.error("make-subleader error:", e);
     }
   });
+  socket.on("chenge-invitation-authority", async ({ chatroomId, val }) => {
+    try {
+      const myuser = await prisma.user.findFirst({
+        where: { email: socket.request.session.useremail }
+      });
+      const mymember = await prisma.chatmember.findFirst({
+        where: { chatroomId, userId: myuser.id }
+      });
+      if (!mymember || mymember.role !== "leader") {
+        socket.emit("error-message", { message: "権限がありません" });
+        return;
+      }
+
+      await prisma.chatroom.update({
+        where: { id: chatroomId },
+        data: { invitationauthority: val }
+      });
+
+      io.to(chatroomId).emit("invitation-authority-changed", { chatroomId, val });
+    } catch (e) {
+      console.error("chenge-invitation-authority error:", e);
+    }
+  });
+
 
   socket.on("make-subleader", async ({ chatroomId, userEmail }) => {
     try {
@@ -1105,12 +1130,14 @@ io.on('connection', async(socket) => {
     try {
       const user = await prisma.user.findUnique({ where: { email: myEmail } });
       const target = await prisma.user.findUnique({ where: { email: targetEmail } });
-
-      if (!target) {
-        socket.emit("favorite-saved", { success: false, reason: "notfound" });
+      if (targetEmail === myEmail) {
+        io.to(socket.id).emit("favorite-added", { success: false, reason: "self" });
         return;
       }
-
+      if (!target) {
+        io.to(socket.id).emit("favorite-added", { success: false, reason: "notfound" });
+        return;
+      }
       await prisma.favorite.create({
         data: { userId: user.id, targetId: target.id },
       });
@@ -1204,6 +1231,30 @@ io.on('connection', async(socket) => {
     socket.request.session.username = updateuser.username;
     socket.request.session.save();
     io.to(user.id).emit("reflection-username", updateuser.username);
+    const [rooms, favoritedBy] = await Promise.all([
+      prisma.chatmember.findMany({
+        where: { userId: user.id },
+        select: { chatroomId: true },
+      }),
+      prisma.favorite.findMany({
+        where: { targetId: user.id },
+        include: { user: true },
+      }),
+    ]);
+
+    //  その全ルーム
+    rooms.forEach(({ chatroomId }) => {
+      io.to(chatroomId).emit("user-rename", {
+        email: user.email,
+        newName: updateuser.username,
+      });
+    });
+    favoritedBy.forEach(f => {
+      io.to(f.user.id).emit("favorite-rename", {
+        targetEmail: user.email, 
+        newName: updateuser.username,
+      });
+    });
   });
 //招待真
 app.post('/api/invite', logincheck, loginchatcheck, async (req, res) => {
