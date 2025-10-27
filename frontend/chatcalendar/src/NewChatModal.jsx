@@ -43,7 +43,7 @@ export default function NewChatModal({ onClose }) {
         <button className="newchatclose" onClick={onClose}>
           ✖️
         </button>
-        <h1>新規カレンダー作成</h1>
+        <h1>新規カルーム作成</h1>
 
         <form onSubmit={handleSubmit}>
           <label htmlFor="chatid">チャット名</label>
