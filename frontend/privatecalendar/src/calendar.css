@@ -644,9 +644,9 @@ a{ color:black; text-decoration:none; }
   color: #fff;
 }
 
-/*.sidebar-action-link:hover {
-  background: rgba(222, 238, 234, 0.97);
-}*/
+.sidebar-action-link:hover {
+  background: linear-gradient(90deg, #2c7be5, #4ba5ff);
+}
 
 .sidebar-chatlist-body {
   margin-top: 4px;

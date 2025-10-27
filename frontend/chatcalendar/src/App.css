@@ -595,14 +595,7 @@ a{ color:black; text-decoration:none; }
   background: linear-gradient(90deg, rgba(212, 233, 227, 0.95), rgba(198, 225, 218, 0.95));
 }
 
-.sidebar-action-link {
-  border: 1px solid transparent;
-  background: #f1f5f4f2;
-}
 
-.sidebar-action-link:hover {
-  background: rgba(222, 238, 234, 0.97);
-}
 
 .sidebar-chatlist-body {
   margin-top: 4px;
