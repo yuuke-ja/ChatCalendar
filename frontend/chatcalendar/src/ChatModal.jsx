@@ -97,7 +97,25 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       try {
         const res = await fetch(`/getchat?date=${selectedDate}`);
         const { chat } = await res.json();
-        setChatList(Array.isArray(chat) ? chat : []);//配列かどうか調べる。一応
+        setChatList(prev => {
+          const serverChats = Array.isArray(chat) ? chat : [];
+          const merged = new Map();
+          if (Array.isArray(prev)) {
+            prev.forEach(item => {
+              if (item && item.id != null) {
+                merged.set(item.id, item);
+              }
+            });
+          }
+          serverChats.forEach(item => {
+            if (item && item.id != null) {
+              merged.set(item.id, item);
+            }
+          });
+          return Array.from(merged.values()).sort(
+            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+          );
+        });
         setTimeout(scrollToBottom, 50);
       } catch (e) {
         console.error("チャット取得失敗:", e);
