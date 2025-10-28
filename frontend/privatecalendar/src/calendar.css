@@ -168,7 +168,6 @@ td:last-child{ color:blue; }
 
 /* テキストエリア */
 .chatmodal-content textarea {
-  width: 100%;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 6px;
