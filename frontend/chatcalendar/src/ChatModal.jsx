@@ -102,7 +102,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
           const merged = new Map();
           if (Array.isArray(prev)) {
             prev.forEach(item => {
-              if (item && item.id != null) {
+              if (item && item.id != null && item.date === selectedDate) {
                 merged.set(item.id, item);
               }
             });
