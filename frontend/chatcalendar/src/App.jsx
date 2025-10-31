@@ -489,8 +489,8 @@ export default function App() {
 
             <div className="room-info">
               <p><span className="label">参加者：</span>{participants.length}人</p>
-              <p><span className="label">⭐️権限：</span>{authorityOn ? "ON" : "OFF"}</p>
-              <p><span className="label">招待権限：</span>{invitationauthorityOn ? "ON" : "OFF"}</p>
+              <p><span className="label">⭐️権限：</span>{authorityOn ? "OFF" : "ON"}</p>
+              <p><span className="label">招待権限：</span>{invitationauthorityOn ? "OFF" : "ON"}</p>
             </div>
 
             <div className="room-actions">
@@ -498,11 +498,11 @@ export default function App() {
               {canSeeinvitationButton && (<button onClick={() => { setRoomdetails(false); setTimeout(() => setInviteModalOpen(true), 50); }}>招待</button>)}
               {myrole === "leader" && (
                 <button onClick={chengeauthority}>
-                  ⭐️権限を{authorityOn ? "OFFにする" : "ONにする"}
+                  ⭐️権限を{authorityOn ? "ONにする" : "OFFにする"}
                 </button>
               )}
               {myrole == "leader" && (
-                <button onClick={chengeinvitationauthority}>招待の権限を{invitationauthorityOn ? "OFFにする" : "ONにする"}</button>
+                <button onClick={chengeinvitationauthority}>招待の権限を{invitationauthorityOn ? "ONにする" : "OFFにする"}</button>
               )}
               <button className="deletemyuser" onClick={deletemyuser}>退出する</button>
             </div>
