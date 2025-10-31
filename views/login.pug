@@ -133,3 +133,25 @@ html(lang='ja')
     a(href="/auth/google") Googleでログイン
     a.footer-link(href="/newuser") アカウントを作成
 
+    if currentuser
+      script.
+        if (confirm("現在#{currentuser}でログインしています。このログインを解除して別のアカウントでログインをしますか？")){
+          fetch("/logout", { method: "GET" })
+        }else{
+          window.location.href="/privatecalendar"
+        }
+    script.
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const map = {
+          password: 'パスワードが間違っています',
+          notemail: 'メールアドレスが見つかりません',
+          unverified: 'まだ認証が完了していません',
+          oauth: 'Googleログインで作成したアカウントはメール・パスワードではログインできません'
+        };
+        const key = params.get('error');
+        if (map[key]) {
+          alert(map[key]);
+          history.replaceState(null, '', window.location.pathname);
+        }
+      })();

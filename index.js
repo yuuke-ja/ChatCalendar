@@ -291,12 +291,12 @@ app.post(
   [
     body('email')
       .isEmail()
-      .withMessage('Email must be valid'),
+      .withMessage('有効なメールアドレスを入力してください'),
 
     body('password')
       .trim()
       .isLength({ min: 4, max: 20 })
-      .withMessage('Password must be between 4 and 20 characters')
+      .withMessage('パスワードは4~20文字でお願いします。')
   ],
   
   async (req, res) => {
@@ -410,36 +410,40 @@ app.post('/verify',async (req,res)=>{
   }
 } )
 app.get('/login', (req, res) => {
+  if (req.session.logined){
+    return res.render('login',{
+      currentuser:req.session.logined,
+    })
+  }
   res.render('login');
 });
 
 app.post("/login",async (req,res)=>{
   try{
     console.log(req.body);
-  const {email,password}=req.body;
-  
-  const user= await prisma.user.findUnique({where: {email}});
-  
-  if(!user){
-    res.status(400).send('ユーザ名が存在しません');
-    return
-  }
-  const match=await bcrypt.compare(password,user.password)
-  if(!match){
-    res.status(400).send('パスワードが間違っています')
-    return;
-  }
-  if(!user.isVerified){
-    res.status(400).send('まだ認証ができていません。')
-    return;
-  }
-  req.session.useremail = user.email
-  req.session.logined=user.email
-  req.session.username=user.username
-  res.redirect('/privatecalendar')
-}catch (error) {
-    console.error(error);
-    res.status(500).send('サーバーエラー');
+    const {email,password}=req.body;
+    const user= await prisma.user.findUnique({where: {email}});
+    
+    if(!user){
+      return res.redirect('/login?error=notemail');
+    }
+    if(!user.password){
+      return res.redirect('/login?error=oauth');
+    }
+    const match=await bcrypt.compare(password,user.password)
+    if(!match){
+      return res.redirect('/login?error=password');
+    }
+    if(!user.isVerified){
+      return res.redirect('/login?error=unverified');
+    }
+    req.session.useremail = user.email
+    req.session.logined=user.email
+    req.session.username=user.username
+    res.redirect('/privatecalendar')
+  }catch (error) {
+      console.error(error);
+      res.status(500).send('サーバーエラー');
   }
 })
 
