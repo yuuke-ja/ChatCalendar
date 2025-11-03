@@ -1229,12 +1229,6 @@ button { position: relative; }
   max-width: 85%;
   max-height: 85%;
   border-radius: 16px;
-  box-shadow: 0 0 30px rgba(23, 242, 198, 0.4);
-  transition: transform 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-.screen-image:hover {
-  transform: scale(1.02);
 }
 
 
@@ -1244,42 +1238,28 @@ button { position: relative; }
   right: 30px;
   font-size: 22px;
   font-weight: bold;
-  background: rgba(255,255,255,0.1);
+  background: none;
   color: white;
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 50%;
   width: 42px;
   height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
 }
-.screen-close:hover {
-  background: rgba(255,255,255,0.25);
-  transform: scale(1.1);
-}
-
 
 .download-button {
   position: absolute;
-  bottom: 25px;
-  right: 30px;
+  bottom: 5px;
+  right: 3px;
   background: transparent;
-  border: 1.5px solid rgb(23, 242, 198);
-  color: rgb(23, 242, 198);
+  border: 1.5px solid #fff;
+  color: #f8f8f8;
   padding: 8px 16px;
   border-radius: 50px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: .5px;
   text-decoration: none;
-  transition: all 0.25s ease;
-}
-.download-button:hover {
-  background: rgb(23, 242, 198);
-  color: black;
-  transform: translateY(-2px);
 }
 
 

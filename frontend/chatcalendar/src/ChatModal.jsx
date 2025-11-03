@@ -26,6 +26,18 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     ? (myrole === "leader" || myrole === "subleader")
     : true;
 
+  const makeDownloadUrl = (url) => {
+    if (!url) return url;
+    try {
+      const pattern = /\/upload\//;
+      if (!pattern.test(url)) return url;
+      return url.replace(pattern, "/upload/fl_attachment/");
+    } catch (err) {
+      console.error("ダウンロードURL生成に失敗しました", err);
+      return url;
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {
@@ -325,7 +337,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                     setShowImportantList(false);
                   }}
                 >
-                  {msg.content.slice(0, 20) || "画像メッセージ"}
+                  {msg.content.slice(0, 20) || "画像"}
                 </li>
               ))}
             </ul>
@@ -619,7 +631,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
             x
           </button>
           <a
-            href={screenImage}
+            href={makeDownloadUrl(screenImage)}
             download
             className="download-button"
             onClick={(e) => e.stopPropagation()}
