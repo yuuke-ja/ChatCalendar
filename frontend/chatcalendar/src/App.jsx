@@ -641,7 +641,10 @@ export default function App() {
         />
       )}
       {newChatModalOpen && (
-        <NewChatModal onClose={() => setNewChatModalOpen(false)} />
+        <NewChatModal
+          onClose={() => setNewChatModalOpen(false)}
+          socket={socketRef.current}
+        />
       )}
       {membermodal && (
         <div className="member-overlay">

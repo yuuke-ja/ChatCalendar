@@ -298,7 +298,12 @@ export default function App() {
           onClose={() => setFriendModalOpen(false)}
         />
       )}
-      {newChatModalOpen && <NewChatModal onClose={() => setNewChatModalOpen(false)} />}
+      {newChatModalOpen && (
+        <NewChatModal
+          onClose={() => setNewChatModalOpen(false)}
+          socket={socketRef.current}
+        />
+      )}
 
       <main className={`main-view${selectedDate ? (isClosing ? " closing-modal" : " with-modal") : ""}`}>
         <div className={`chatcalendar-page ${isClosing ? "closing-modal" : ""}`}>

@@ -109,7 +109,8 @@ td:last-child{ color:blue; }
   display: flex;
   flex-direction: column;
   z-index: 1000;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .modal-header {
   height: 60px;
@@ -1949,6 +1950,37 @@ content-deletechat{
   text-align: center;
   color: #00000090;
 }
+.content-body{
+  position: relative; 
+}
+.content-sub{ 
+  position: absolute;
+  display: inline-flex;
+  /* top: calc(100% + 4px); */
+  bottom: 59px;
+  justify-content: center;
+  left: 0;
+  background-color: #ccc;
+}
+.myuser .content-sub {
+  left: auto;
+  bottom: 44px !important;
+  font-size: 4px;
+  right: 0px;
+}
+.content-sub button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: px;
+  height: 20px;
+  /* padding: 4px 10px; */
+  font-size: 10px;
+  background-color: white;
+  border: 1px solid #777;
+}
+
+
 
 
 

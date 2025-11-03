@@ -133,13 +133,51 @@ html(lang='ja')
     a(href="/auth/google") Googleでログイン
     a.footer-link(href="/newuser") アカウントを作成
 
-    if currentuser
-      script.
-        if (confirm("現在#{currentuser}でログインしています。このログインを解除して別のアカウントでログインをしますか？")){
-          fetch("/logout", { method: "GET" })
-        }else{
-          window.location.href="/privatecalendar"
+    script.
+      (function () {
+        const form = document.querySelector('form[action="/login"]');
+        const googleLink = document.querySelector('a[href="/auth/google"]');
+
+        async function checkAndContinue(next) {
+          try {
+            const res = await fetch('/api/session-latest', { credentials: 'same-origin' });
+            const { user } = await res.json();
+
+            if (!user) {
+              next();
+              return;
+            }
+
+            const message = `現在${user}でログインしています。別のアカウントに切り替えますか？`;
+            if (!window.confirm(message)) {
+              window.location.href = '/privatecalendar';
+              return;
+            }
+
+            await fetch('/logout', { method: 'GET', credentials: 'same-origin' });
+            next();
+          } catch (error) {
+            console.error('セッション確認に失敗しました', error);
+            next();
+          }
         }
+
+        if (form) {
+          form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            checkAndContinue(() => form.submit());
+          });
+        }
+
+        if (googleLink) {
+          googleLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            checkAndContinue(() => { window.location.href = googleLink.href; });
+          });
+        }
+      })();
+
+
     script.
       (function () {
         const params = new URLSearchParams(window.location.search);

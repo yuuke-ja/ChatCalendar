@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function NewChatModal({ onClose }) {
+export default function NewChatModal({ onClose, socket }) {
   const [chatId, setChatId] = useState("");
   const [error, setError] = useState("");
 
@@ -23,18 +23,15 @@ export default function NewChatModal({ onClose }) {
       return;
     }
 
-    const chatToSend = chatId;
+    const chatid = chatId;
     setChatId("");   // 入力欄リセット
     onClose();       // モーダル即閉じ
+    if (!socket) {
+      alert("接続中です。しばらくしてから再度お試しください。");
+      return;
+    }
+    socket.emit("/newchat", { chatid })
 
-    // fetchはバックグラウンドで送信
-    fetch("/newchat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chatid: chatToSend }),
-    }).catch((err) => {
-      console.error("チャット作成エラー:", err);
-    });
   };
 
   return (
@@ -43,7 +40,7 @@ export default function NewChatModal({ onClose }) {
         <button className="newchatclose" onClick={onClose}>
           ✖️
         </button>
-        <h1>新規ルーム作成</h1>
+        <h1>新規カルーム作成</h1>
 
         <form onSubmit={handleSubmit}>
           <label htmlFor="chatid">チャット名</label>

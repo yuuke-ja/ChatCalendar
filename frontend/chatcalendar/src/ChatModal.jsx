@@ -369,38 +369,79 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
                     {/* テキスト内容 */}
                     {hasContent && (
-                      <div
-                        className="content"
-                        onMouseEnter={() => setreactionmessageid(c.id)}
-                        onMouseLeave={() => setreactionmessageid(null)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
+                      <div className="content-body">
+                        <div
+                          className="content"
+                          onMouseEnter={() => setreactionmessageid(c.id)}
+                          onMouseLeave={() => setreactionmessageid(null)}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
 
-                          if (c.deleted) return;
+                            if (c.deleted) return;
 
-                          // 自分のメッセージ  削除も保存も出す
-                          if (c.email === myEmail) {
+                            // 自分のメッセージ  削除も保存も出す
+                            if (c.email === myEmail) {
+                              setDeleteTarget({
+                                id: c.id,
+                                action: "both", // 両方出す
+                                content: c.content,
+                              });
+                              return;
+                            }
+                            // 他人のメッセージ 保存のみ
                             setDeleteTarget({
                               id: c.id,
-                              x: e.clientX,
-                              y: e.clientY,
-                              action: "both", // 両方出す
+                              action: "calendar", // 保存だけ
                               content: c.content,
                             });
-                            return;
-                          }
-                          // 他人のメッセージ 保存のみ
-                          setDeleteTarget({
-                            id: c.id,
-                            x: e.clientX,
-                            y: e.clientY,
-                            action: "calendar", // 保存だけ
-                            content: c.content,
-                          });
-                        }}
-                      >
-                        {c.content}
+                          }}
+                        >
+                          {c.content}
+                        </div>
+                        {deleteTarget && deleteTarget.id === c.id && (
+                          <div className="content-sub"  >
+                            {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
+                              <button
+                                onClick={() => {
+                                  if (!window.confirm("本当に削除しますか？")) return;
+                                  socket.emit("delete-message", {
+                                    messageId: deleteTarget.id,
+                                    roomId,
+                                    email: myEmail,
+                                  });
+                                  setDeleteTarget(null);
+                                }}
+                              >
+                                削除
+                              </button>
+                            )}
+
+                            {(deleteTarget.action === "calendar" || deleteTarget.action === "both") && (
+                              <button
+                                onClick={async () => {
+                                  if (!deleteTarget.content) return;
+                                  const date = selectedDate;
+                                  try {
+                                    await fetch("/add-memo", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ date: date, memoList: [deleteTarget.content] }),
+                                    });
+                                    alert("マイカレンダーに保存しました");
+                                  } catch (err) {
+                                    console.error(err);
+                                    alert("保存に失敗しました");
+                                  }
+                                  setDeleteTarget(null);
+                                }}
+                              >
+                                カレンダーに保存
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
+
                     )}
 
                     {/* 画像 */}
@@ -415,8 +456,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                           if (c.email === myEmail && !c.deleted) {
                             setDeleteTarget({
                               id: c.id,
-                              x: e.clientX,
-                              y: e.clientY,
                               action: "delete",
                             });
                             return;
@@ -557,59 +596,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                   </div>
                 )}
 
-                {deleteTarget && deleteTarget.id === c.id && (
-                  <div
-                    style={{
-                      position: "fixed",
-                      top: deleteTarget.y,
-                      left: deleteTarget.x,
-                      background: "#fff",
-                      border: "1px solid #ccc",
-                      borderRadius: "4px",
-                      zIndex: 9999,
-                      fontSize: "10px",
-                    }}
-                  >
-                    {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
-                      <button
-                        onClick={() => {
-                          if (!window.confirm("本当に削除しますか？")) return;
-                          socket.emit("delete-message", {
-                            messageId: deleteTarget.id,
-                            roomId,
-                            email: myEmail,
-                          });
-                          setDeleteTarget(null);
-                        }}
-                      >
-                        削除
-                      </button>
-                    )}
-
-                    {(deleteTarget.action === "calendar" || deleteTarget.action === "both") && (
-                      <button
-                        onClick={async () => {
-                          if (!deleteTarget.content) return;
-                          const date = selectedDate;
-                          try {
-                            await fetch("/add-memo", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ date: date, memoList: [deleteTarget.content] }),
-                            });
-                            alert("マイカレンダーに保存しました");
-                          } catch (err) {
-                            console.error(err);
-                            alert("保存に失敗しました");
-                          }
-                          setDeleteTarget(null);
-                        }}
-                      >
-                        カレンダーに保存
-                      </button>
-                    )}
-                  </div>
-                )}
 
 
 

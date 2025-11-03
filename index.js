@@ -446,6 +446,9 @@ app.post("/login",async (req,res)=>{
       res.status(500).send('サーバーエラー');
   }
 })
+app.get("/api/session-latest",(req,res)=>{
+  res.json({ user: req.session.useremail || null });
+})
 
 //プライベートカレンダー
 app.get('/carender',logincheck, (req, res) => {
@@ -992,10 +995,13 @@ io.on('connection', async(socket) => {
     }
   });
 
-  app.post('/newchat',logincheck, async (req, res) => {
+  socket.on("/newchat", async ({chatid}) => {
     console.log("aaaaaaaaaaaaaaaaaa")
-    const { chatid} = req.body;
-    const email=req.session.logined
+    const email=socket.request.session.logined
+    if (!email) {
+      socket.emit("error-message", { message: "ログインしてください" });
+      return;
+    }
     const user =await prisma.user .findUnique({where:{email}})
     try {const chatroomdata=await prisma.chatroom.create({
       data: {
@@ -1019,7 +1025,7 @@ io.on('connection', async(socket) => {
   
   }catch(error){
     console.error('チャット作成エラー:', error);
-    res.send('IDが既に存在しています')
+    socket.emit("error-message", 'IDが既に存在しています')
   }
   });
 
