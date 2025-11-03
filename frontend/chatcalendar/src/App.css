@@ -120,6 +120,10 @@ td:last-child{ color:blue; }
   position: relative;        /* 中央ボタンを絶対配置するため */
   padding: 0 12px;           /* 左右余白 */
   border-bottom: 1px solid #ccc;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;  
 }
 
 #modal-date {

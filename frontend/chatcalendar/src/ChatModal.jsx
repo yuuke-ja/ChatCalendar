@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 
@@ -619,27 +620,29 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         )}
       </div>
 
-      {screenImage && (
-        <div className="screen-overlay" onClick={() => setscreenImage(null)}>
-          <img
-            src={screenImage}
-            alt="拡大画像"
-            className="screen-image"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button className="screen-close" onClick={() => setscreenImage(null)}>
-            x
-          </button>
-          <a
-            href={makeDownloadUrl(screenImage)}
-            download
-            className="download-button"
-            onClick={(e) => e.stopPropagation()}
-          >
-            ⬇ ダウンロード
-          </a>
-        </div>
-      )}
+      {screenImage &&
+        createPortal(
+          <div className="screen-overlay" onClick={() => setscreenImage(null)}>
+            <img
+              src={screenImage}
+              alt="拡大画像"
+              className="screen-image"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button className="screen-close" onClick={() => setscreenImage(null)}>
+              x
+            </button>
+            <a
+              href={makeDownloadUrl(screenImage)}
+              download
+              className="download-button"
+              onClick={(e) => e.stopPropagation()}
+            >
+              ⬇ ダウンロード
+            </a>
+          </div>,
+          document.body
+        )}
 
       {previewSrc && (
         <div className="preview-line">
