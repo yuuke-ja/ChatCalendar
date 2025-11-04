@@ -538,70 +538,74 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
                           {/* 全リアクション表示*/}
                           {showAllReactions?.messageId === c.id && (
-                            <div
-                              className="reaction-modal-overlay"
-                              onClick={() => setShowAllReactions(null)}
-                              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 9998 }}
-                            >
+                            createPortal(
                               <div
-                                className="reaction-modal"
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  position: "fixed",
-                                  top: "50%",
-                                  left: "50%",
-                                  transform: "translate(-50%, -50%)",
-                                  background: "#fff",
-                                  padding: "16px",
-                                  borderRadius: "8px",
-                                  zIndex: 9999,
-                                  maxWidth: "90%",
-                                  maxHeight: "80%",
-                                  overflow: "auto",
-                                }}
+                                className="reaction-modal-overlay"
+                                onClick={() => setShowAllReactions(null)}
+                                style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 9998 }}
                               >
-                                <h4 style={{ marginTop: 0 }}>リアクション</h4>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                                  {u.map((item, idx) => {
-                                    const reacted = (item.users || []).includes(myEmail);
-                                    return (
-                                      <button
-                                        key={`${item.emoji}-modal-${idx}`}
-                                        className={`reaction-btn ${reacted ? "reacted" : ""}`}
-                                        onClick={() => saveReaction(c.id, item.emoji)}
-                                        title={(item.users || []).join(", ")}
-                                      >
-                                        <span className="emoji">{item.emoji}</span>
-                                        <span className="count">{(item.users || []).length}</span>
-                                      </button>
-                                    );
-                                  })}
+                                <div
+                                  className="reaction-modal"
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    position: "fixed",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                    background: "#fff",
+                                    padding: "16px",
+                                    borderRadius: "8px",
+                                    zIndex: 9999,
+                                    maxWidth: "90%",
+                                    maxHeight: "80%",
+                                    overflow: "auto",
+                                  }}
+                                >
+                                  <h4 style={{ marginTop: 0 }}>リアクション</h4>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                    {u.map((item, idx) => {
+                                      const reacted = (item.users || []).includes(myEmail);
+                                      return (
+                                        <button
+                                          key={`${item.emoji}-modal-${idx}`}
+                                          className={`reaction-btn ${reacted ? "reacted" : ""}`}
+                                          onClick={() => saveReaction(c.id, item.emoji)}
+                                          title={(item.users || []).join(", ")}
+                                        >
+                                          <span className="emoji">{item.emoji}</span>
+                                          <span className="count">{(item.users || []).length}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
+                              </div>,
+                              document.body)
                           )}
 
                           {viewpicker && reactionmessageid === c.id && (
-                            <>
-                              <div
-                                className="emoji-overlay"
-                                onMouseDown={() => setviewpicker(false)}
-                                style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.3)" }}
-                              />
-                              <div
-                                ref={pickerRef}
-                                className="picker-wrapper-fixed"
-                                style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999 }}
-                              >
-                                <Picker
-                                  data={data}
-                                  onEmojiSelect={(emoji) => {
-                                    saveReaction(c.id, emoji.native);
-                                    setviewpicker(false);
-                                  }}
+                            createPortal(
+                              <>
+                                <div
+                                  className="emoji-overlay"
+                                  onMouseDown={() => setviewpicker(false)}
+                                  style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.3)" }}
                                 />
-                              </div>
-                            </>
+                                <div
+                                  ref={pickerRef}
+                                  className="picker-wrapper-fixed"
+                                  style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999 }}
+                                >
+                                  <Picker
+                                    data={data}
+                                    onEmojiSelect={(emoji) => {
+                                      saveReaction(c.id, emoji.native);
+                                      setviewpicker(false);
+                                    }}
+                                  />
+                                </div>
+                              </>,
+                              document.body)
                           )}
                         </>
                       );

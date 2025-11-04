@@ -109,8 +109,6 @@ td:last-child{ color:blue; }
   display: flex;
   flex-direction: column;
   z-index: 1000;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 .modal-header {
   height: 60px;
@@ -150,7 +148,7 @@ td:last-child{ color:blue; }
   box-sizing: border-box;
 }
 .modal-input {
-  position: sticky;
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
