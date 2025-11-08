@@ -40,4 +40,14 @@ html(lang='ja')
       input(type='text' name="code" required)
      
       button(type="submit") 認証
-    
+  script.
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('error');
+    if (key) {
+      const messages = {
+        password: 'パスワードが違います',
+        notcode: '認証コードが違います',
+        timeover: '認証コードの有効期限が切れています'
+      };
+      alert(messages[key] || 'エラーが発生しました');
+    }

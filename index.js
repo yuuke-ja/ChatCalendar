@@ -350,11 +350,16 @@ app.post(
         try {
           
           const info = await transporter.sendMail({
-            from: process.env.GMAIL_USER, // sender address
+            from: process.env.GMAIL_USER, 
             to: email, 
-            subject: "認証メール", // Subject line
-            text: `${username}さん,コードは${code}です。`, // plain text body
-            html: `<p>${username}さん、認証コードは <b>${code}</b> です。</p>`
+            subject: "ChatCalendarご本人確認コード認証メール", 
+            text: `${username}さん,コードは${code}です。`, 
+            html: `
+              <div>
+                <p>${username}さん、認証コードは <b>${code}</b> です。</p>
+                <p>このコードは 10 分間 有効です。時間内に入力を完了してください。</p>
+                <p>心当たりがない場合は、このメールを破棄してください。</p>
+              </div>`
           });
       
           console.log("Message sent: %s", info.messageId);
@@ -398,17 +403,17 @@ app.post('/verify',async (req,res)=>{
     }else if(
       now>expireTime
     ){
-      res.status(400).send('認証コードの有効期限が切れています');
+      return res.redirect('/verify?error=timeover')
     }else{
-      res.status(400).send('認証コードが違います');
       console.log(`コード${user.code}`)
       console.log(`送信コード${code}`)
+      return res.redirect('/verify?error=notcode')
     }
   }catch (err) {
     console.error('認証処理中にエラー:', err);
     res.status(500).send('サーバーエラー');
   }
-} )
+})
 app.get('/login', (req, res) => {
   if (req.session.logined){
     return res.render('login',{

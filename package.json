@@ -5,7 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "6.9.0",
+    "@prisma/client": "^6.19.0",
     "basic-auth": "^2.0.1",
     "basic-auth-connect": "^1.1.0",
     "bcrypt": "^6.0.0",
@@ -22,7 +22,6 @@
     "passport-google-oauth2": "^0.2.0",
     "passport-yahoo-oauth2": "^0.2.6",
     "pg-promise": "^11.13.0",
-    "prisma": "6.9.0",
     "pug": "^3.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -33,6 +32,7 @@
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-react": "^7.27.1",
+    "prisma": "^6.19.0",
     "vite": "^7.1.3"
   }
 }

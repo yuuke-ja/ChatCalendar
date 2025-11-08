@@ -98,6 +98,10 @@ export default function App() {
     socketRef.current.emit("delete-member", { chatroomId, userEmail: email })
   }
   function deletemyuser() {
+    if (myrole == "leader") {
+      alert("リーダーを変更してから退出してください");
+      return;
+    }
     if (!window.confirm("本当にこのルームから退出しますか？")) return
     socketRef.current.emit("delete-myuser", { chatroomId, userEmail: myEmail })
   }
@@ -211,9 +215,10 @@ export default function App() {
 
         socketRef.current = io("/", {
           reconnection: true,
-          reconnectionAttempts: 5,
+          reconnectionAttempts: Infinity,
           reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000
+          reconnectionDelayMax: 5000,
+          timeout: 20000
         });
         const socket = socketRef.current;
 
