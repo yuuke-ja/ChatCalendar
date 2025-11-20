@@ -601,6 +601,8 @@ export default function App() {
                 type="text"
                 value={myUsername}
                 onChange={(e) => setMyUsername(e.target.value)}
+                maxLength={19}
+                placeholder="19文字まで入力できます"
               />
             </div>
             <div className="userinfo-buttons">
@@ -617,6 +619,9 @@ export default function App() {
             <div className="userinfo-item">
               <label>メールアドレス</label>
               <span>{myEmail}</span>
+            </div>
+            <div>
+              <button className="googleclandar" onClick={() => window.location.href = "/auth/google/link"}>Googleカレンダー連携</button>
             </div>
             <div className="userinfo-buttons">
               <a href="/logout" className="logout">

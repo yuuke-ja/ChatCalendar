@@ -104,7 +104,7 @@ td:last-child{ color:blue; }
   right: 0;
   width: 40%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(233, 233, 233, 0.199), rgba(172, 172, 172, 0.045));
+  background: #F9FAFB;
   border-left: 2px solid rgb(23, 242, 198); /* ← 左だけ線を出す */
   display: flex;
   flex-direction: column;
@@ -1141,6 +1141,7 @@ button { position: relative; }
   padding: 4px 8px;
   border-radius: 5px;
   cursor: pointer;
+  font-size:12px;
 }
 
 .btn-leader {
@@ -1150,6 +1151,7 @@ button { position: relative; }
   padding: 4px 8px;
   border-radius: 5px;
   cursor: pointer;
+  font-size: 12px;
 }
 
 .btn-remove {
@@ -1159,6 +1161,8 @@ button { position: relative; }
   padding: 4px 8px;
   border-radius: 5px;
   cursor: pointer;
+  width: 50px;
+  font-size: 12px;
 }
 .member-role {
   display: inline-block;
@@ -1942,7 +1946,6 @@ content-deletechat{
   bottom: 59px;
   justify-content: center;
   left: 0;
-  background-color: #ccc;
 }
 .myuser .content-sub {
   left: auto;
@@ -1961,7 +1964,32 @@ content-deletechat{
   background-color: white;
   border: 1px solid #777;
 }
+.googletitlemodal{
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 24px 32px;
+  width: 420px;
+  height: 400px;
+  max-width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  position: relative;
+  animation: popIn 0.25s ease;
+}
+.googleclandar {
+  /*padding: 10px 18px;*/
+  background: #1a73e8;     
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease; 
+}
 
+.googleclandar:hover {
+  background: #1765d6;      /* 少し暗くするだけ */
+}
 
 
 
@@ -1983,15 +2011,10 @@ content-deletechat{
     padding: 0 10px;
   }
   #chatmodal {
-    width: 96vw;
-    height: 90vh;
-  }
-  .modal-input {
-    flex-wrap: wrap;
-    row-gap: 8px;
+    width: 100vw;
+    height: 100%;
   }
   #chat {
-    order: 1;
     width: 100%;
   }
   #image-upload { order: 2; }
@@ -2002,7 +2025,6 @@ content-deletechat{
   }
   #save {
     order: 4;
-    width: 100%;
   }
 }
 .modal {

@@ -8,6 +8,7 @@ const http =require("http");
 const server =http.createServer(app);
 const io =require("socket.io")(server);
 const session = require('express-session');
+const { google } = require('googleapis');
 
 
 
@@ -50,9 +51,10 @@ const sessionsocket = session({
   saveUninitialized: false,
   proxy: isProduction,
   cookie: {
-    secure: isProduction,  // localhostならfalse, HTTPS環境はtrue
-    sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000}
+  secure: false,
+  sameSite: 'lax'
+  }
+
 });
 io.use((socket, next) => {
   sessionsocket(socket.request, {}, next);
@@ -94,12 +96,65 @@ passport.use('google', new GoogleStrategy({
   },
   async function(request, accessToken, refreshToken, profile, done) {
     try{
+      const state = request.query.state || "";
+      const isLink = state.startsWith("link:");
+
+      console.log("==== [GoogleStrategy START] ====");
+      console.log("SessionID:", request.sessionID);
+      console.log("Session before setting tokens:", request.session);
+      console.log("req.session.logined:", request.session.logined);
+      request.session.oauthAccessToken = accessToken;
+      request.session.oauthRefreshToken = refreshToken;
       console.log('Google profile:', profile);
+      console.log("req.session.logined (after):", request.session.logined);
       console.log('Google profile.id:', profile.id);
       console.log('Google profile.email:', profile.email);
-      let googleuser=await prisma.user.findUnique({
-        where:{googleid:profile.id}
-      })
+      let googleuser = await prisma.user.findUnique({
+        where: { googleid: profile.id }
+      });
+      if (isLink){
+        if (googleuser) {
+        const updateData = {
+          googleAccessToken: accessToken,
+        };
+        if (refreshToken) {
+          updateData.googleRefreshToken = refreshToken;
+        }
+        const updatedUser = await prisma.user.update({
+          where: { id: googleuser.id },
+          data: updateData,
+        });
+        return done(null, updatedUser);
+      }else{
+        const emailuser=await prisma.user.findUnique({
+          where:{email:profile.email}
+        })
+        if(emailuser){
+            const updateuser=await prisma.user.update({
+              where:{email:profile.email},
+              data:{
+                googleid:profile.id,
+                googleAccessToken: accessToken,
+                googleRefreshToken: refreshToken
+              }
+            })
+            return done(null,updateuser)
+        }else{
+          const newuser=await prisma.user.create({
+            data:{
+              username:profile.displayName || profile.email,
+              email:profile.email,
+              password:'',
+              code:"some-value", 
+              timerimit:new Date(),
+              googleid:profile.id,
+              isVerified:true
+            }
+          })
+          return done(null,newuser)
+        }
+      }
+      }
       if(googleuser){
         return done(null,googleuser)
       }else{
@@ -134,26 +189,102 @@ passport.use('google', new GoogleStrategy({
 ));
 app.get('/auth/google',
   passport.authenticate('google', { scope:
-      [ 'email', 'profile' ] }
+      [ 'email', 'profile', 'https://www.googleapis.com/auth/calendar' ],accessType: 'offline', prompt: 'consent'  }
 ));
+app.get('/auth/google/link', logincheck, (req, res, next) => {
+  const currentEmail = req.session.logined;  // logincheck 通ってるから必ずあるはず
+  console.log('[link] sid=', req.sessionID, 'logined=', currentEmail);
 
-app.get( '/auth/google/callback',
-    passport.authenticate( 'google', {
-        successRedirect: '/auth/google/success',
-        failureRedirect: '/auth/google/failure'
-}));
-app.get('/auth/google/success',async(req,res)=>{
-  if(!req.user){
-    res.redirect('/login')
+  req.session.googleLinkReturnTo =
+    req.query.return ||
+    req.headers.referer ||
+    '/chatcalendar';
+
+  // state に今ログインしてるメールを埋め込む
+  const state = 'link:' + encodeURIComponent(currentEmail);
+
+  passport.authenticate('google', {
+    scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar'],
+    accessType: 'offline',
+    prompt: 'consent',
+    state,
+  })(req, res, next);
+});
+
+app.get(
+  '/auth/google/callback',
+  (req, res, next) => {
+    console.log(
+      '[cb:start] sid=',
+      req.sessionID,
+      'logined=',
+      req.session.logined,
+      'state=',
+      req.query.state
+    );
+    next();
+  },
+  passport.authenticate('google', {
+    failureRedirect: '/auth/google/failure',
+  }),
+  async (req, res) => {
+    console.log(
+      '[cb:post-auth] sid=',
+      req.sessionID,
+      'logined=',
+      req.session.logined,
+      'state=',
+      req.query.state
+    );
+
+    if (!req.user) return res.redirect('/login');
+
+    const state = req.query.state || '';
+
+    // ====== Google連携フロー ======
+    if (state.startsWith('link:')) {
+      const linkedEmail = decodeURIComponent(state.slice('link:'.length));
+      if (state.startsWith('link:')) {
+        req.session.passport = { user: linkedEmail };
+      }
+
+      console.log('[link-flow] linkedEmail=', linkedEmail, 'googleUser=', req.user.email);
+      const regainUser=await prisma.user.findUnique({
+        where:{email:linkedEmail}
+      })
+      if (regainUser){
+        req.session.logined=regainUser.email;
+        req.session.username = regainUser.username;
+        req.session.useremail = regainUser.email;
+      }
+
+      try {
+        await prisma.user.update({
+          where: { email: linkedEmail },
+          data: {
+            googleAccessToken: req.user.googleAccessToken,
+            googleRefreshToken: req.user.googleRefreshToken,
+          },
+        });
+      } catch (err) {
+        console.error('Googleリンク更新失敗', err);
+        return res.redirect('/auth/google/failure');
+      }
+
+      
+      return res.redirect('/privatecalendar');
+    }
+
+    // ====== ふつうの Google ログイン ======
+    req.session.logined = req.user.email;
+    req.session.username = req.user.username;
+    req.session.useremail = req.user.email;
+    res.redirect('/privatecalendar');
   }
-  req.session.logined=req.user.email
-  req.session.username=req.user.username
-  req.session.useremail=req.user.email
-  res.redirect('/privatecalendar')
-})
-app.get('/auth/google/failure',(req,res)=>{
-  res.send('失敗しました')
-})
+);
+
+
+
 //passport.use('yahoo', new YahooStrategy({
  // consumerKey:process.env.YAHOO_CONSUMER_KEY,
  // consumerSecret:process.env.YAHOO_CONSUMER_SECRET,
@@ -1668,6 +1799,45 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
     console.error(`画像アップロード${error}`);
     res.status(500).json({ error: 'サーバエラー' });
   }
+})
+app.post('/save-googlecalendar',logincheck,async(req,res)=>{
+  const email = req.session.logined;
+  const user=await prisma.user.findUnique({ where: { email } });
+  const {date,content,title}=req.body;
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_CALLBACK_URL
+  );
+  oAuth2Client.setCredentials({
+    access_token: user.googleAccessToken,
+    refresh_token: user.googleRefreshToken,
+  })
+  const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+  if (!user.googleAccessToken || !user.googleRefreshToken) {
+    return res.status(400).json({ success: false, message: 'Google連携が必要です' });
+  }
+  try {
+    const response = await calendar.events.insert({
+      calendarId: 'primary',
+      requestBody: {
+        summary:title || "(タイトルなし)",
+        description: content || '（内容なし）',
+        start: { date},
+        end: { date},
+      },
+    });
+    res.json({ success: true, link: response.data.htmlLink });
+  } catch (error) {
+    console.error('Error creating event:', error);
+    res.status(500).json({ success: false, message: 'Googleカレンダーへの登録に失敗しました' });
+  }
+
+})
+app.get('/getgooglelist',logincheck,loginchatcheck,async(req,res)=>{
+  const email = req.session.logined;
+  const user=await prisma.user.findUnique({ where: { email } });
+  res.json({ googleAccessToken: user.googleAccessToken, googleRefreshToken: user.googleRefreshToken })
 })
 
 // チャットカレンダー

@@ -1068,7 +1068,7 @@ button {
   position: absolute;
   right:10px;
   top: 50%;
-  background-color: #f9f9f9;
+  background-color: transparent;
   border: none;
   border-radius: 6px;
   text-align: center;
@@ -1376,7 +1376,17 @@ button {
   color: #8d93b5;
 }
 
-
+.googleclandar {
+  /*padding: 10px 18px;*/
+  background: #1a73e8;     
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease; 
+}
 
 @media (max-width: 600px) {
   .home, .logout {
@@ -1393,6 +1403,10 @@ button {
     justify-content: space-between;
     align-items: center;
     padding: 0 10px;
+  }
+  .chatmodal{
+    box-sizing: border-box;
+    width: 100vw;
   }
   #chatmodal {
     width: 96vw;

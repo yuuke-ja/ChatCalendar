@@ -17,6 +17,13 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const [importantMessages, setImportantMessages] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [previewSrc, setPreviewSrc] = useState(null);
+  const [showopensavecalendar, setshowopensavecalendar] = useState(false)
+  const [googletitle, setgoogletitle] = useState(false)
+  const [titlee, setTitlee] = useState("");
+  const [googleSaveTarget, setGoogleSaveTarget] = useState(null);
+  const [googleAccessToken, setgoogleAccessToken] = useState("")
+  const [googleRefreshToken, setgoogleRefreshToken] = useState("")
+
 
 
 
@@ -52,6 +59,12 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     setImportant(prev => !prev)
   }
 
+  const closeGoogleModal = () => {
+    setgoogletitle(false);
+    setGoogleSaveTarget(null);
+    setTitlee("");
+  };
+
   // 絵文字をグループ化
   function gropReactions(reactions) {
     const group = {};
@@ -69,13 +82,25 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     }
   };
   useEffect(() => {
-    const closeOnOutside = () => setDeleteTarget(null);
+    const closeOnOutside = (e) => {
+      const menu = document.querySelector(".content-sub");
+      if (menu && menu.contains(e.target)) return;
+      setDeleteTarget(null);
+      setshowopensavecalendar(false);
+    };
     if (deleteTarget) {
-      document.addEventListener("click", closeOnOutside);
+      document.addEventListener("mousedown", closeOnOutside);
     }
-    return () => document.removeEventListener("click", closeOnOutside);
+    return () => document.removeEventListener("mousedown", closeOnOutside);
   }, [deleteTarget]);
-
+  useEffect(() => {
+    fetch('/getgooglelist', { method: 'GET' })
+      .then(res => res.json())
+      .then(data => {
+        setgoogleAccessToken(data.googleAccessToken)
+        setgoogleRefreshToken(data.googleRefreshToken)
+      })
+  }, [])
 
   useEffect(() => {
     if (!socket) return;
@@ -413,25 +438,35 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                         </div>
                         {deleteTarget && deleteTarget.id === c.id && (
                           <div className="content-sub"  >
-                            {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
-                              <button
-                                onClick={() => {
-                                  if (!window.confirm("本当に削除しますか？")) return;
-                                  socket.emit("delete-message", {
-                                    messageId: deleteTarget.id,
-                                    roomId,
-                                    email: myEmail,
-                                  });
-                                  setDeleteTarget(null);
-                                }}
-                              >
-                                削除
-                              </button>
+                            {!showopensavecalendar && (
+                              <>
+                                {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
+                                  <button
+                                    onClick={() => {
+                                      if (!window.confirm("本当に削除しますか？")) return;
+                                      socket.emit("delete-message", {
+                                        messageId: deleteTarget.id,
+                                        roomId,
+                                        email: myEmail,
+                                      });
+                                      setDeleteTarget(null);
+                                    }}
+                                  >
+                                    削除
+                                  </button>
+                                )}
+                                {(deleteTarget.action === "calendar" || deleteTarget.action === "both") && (
+                                  <button
+                                    onClick={() => { setshowopensavecalendar(prev => !prev); }}
+                                  >
+                                    カレンダーに保存
+                                  </button>
+                                )}
+                              </>
                             )}
-
-                            {(deleteTarget.action === "calendar" || deleteTarget.action === "both") && (
-                              <button
-                                onClick={async () => {
+                            {showopensavecalendar && (
+                              <div className="save-options">
+                                <button onClick={async () => {
                                   if (!deleteTarget.content) return;
                                   const date = selectedDate;
                                   try {
@@ -445,11 +480,32 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                                     console.error(err);
                                     alert("保存に失敗しました");
                                   }
+                                  setshowopensavecalendar(false);
                                   setDeleteTarget(null);
-                                }}
-                              >
-                                カレンダーに保存
-                              </button>
+                                }}>マイカレンダー</button>
+                                <button
+                                  onClick={() => {
+                                    if (!deleteTarget?.content) return;
+                                    if (!selectedDate) {
+                                      alert("日付を選択してください");
+                                      return;
+                                    }
+                                    if (!googleAccessToken || !googleRefreshToken) {
+                                      alert("Googleカレンダーに連携してください。")
+                                      return
+                                    }
+                                    setGoogleSaveTarget({
+                                      content: deleteTarget.content,
+                                      date: selectedDate,
+                                    });
+                                    setgoogletitle(true);
+                                    setshowopensavecalendar(false);
+                                    setDeleteTarget(null);
+                                  }}
+                                >
+                                  Googleカレンダー
+                                </button>
+                              </div>
                             )}
                           </div>
                         )}
@@ -624,7 +680,8 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         )}
       </div>
 
-      {screenImage &&
+      {
+        screenImage &&
         createPortal(
           <div className="screen-overlay" onClick={() => setscreenImage(null)}>
             <img
@@ -646,27 +703,85 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
             </a>
           </div>,
           document.body
-        )}
+        )
+      }
 
-      {previewSrc && (
-        <div className="preview-line">
-          <img
-            id="preview"
-            src={previewSrc}
-            alt="プレビュー"
-            style={{ maxHeight: 80 }}
-          />
-          <button
-            className="preview-cancel-btn"
-            onClick={() => {
-              setImageFile(null);
-              setPreviewSrc(null);
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
+      {
+        googletitle && googleSaveTarget &&
+        createPortal(
+          <div className="member-overlay" onClick={closeGoogleModal}>
+            <div className="googletitlemodal" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="newchatclose"
+                onClick={closeGoogleModal}
+                aria-label="閉じる"
+              >
+                ×
+              </button>
+              <h2>タイトル</h2>
+              <input
+                type="text"
+                value={titlee}
+                onChange={(e) => setTitlee(e.target.value)}
+                placeholder="ここに入力"
+              />
+              <button
+                onClick={async () => {
+                  if (!googleSaveTarget?.content || !googleSaveTarget?.date) return;
+                  try {
+                    const res = await fetch("/save-googlecalendar", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        title: titlee,
+                        content: googleSaveTarget.content,
+                        date: googleSaveTarget.date,
+                      }),
+                    });
+                    const body = await res.json().catch(() => null);
+                    if (!res.ok || !body?.success) {
+                      const message = body?.message || "Googleカレンダーへの保存に失敗しました";
+                      alert(message);
+                      return;
+                    }
+                    console.log("タイトル", titlee);
+                    alert("Googleカレンダーに保存しました");
+                    closeGoogleModal();
+                  } catch (err) {
+                    console.error(err);
+                    alert("保存に失敗しました");
+                  }
+                }}
+              >
+                保存
+              </button>
+            </div>
+          </div>,
+          document.body
+        )
+      }
+
+      {
+        previewSrc && (
+          <div className="preview-line">
+            <img
+              id="preview"
+              src={previewSrc}
+              alt="プレビュー"
+              style={{ maxHeight: 80 }}
+            />
+            <button
+              className="preview-cancel-btn"
+              onClick={() => {
+                setImageFile(null);
+                setPreviewSrc(null);
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )
+      }
 
 
       <div className="modal-input">

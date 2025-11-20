@@ -17,6 +17,8 @@ model User {
   isVerified   Boolean
   googleid     String?      @unique
   yahooid      String?      @unique
+  googleAccessToken     String?
+  googleRefreshToken    String?
   chatmember   Chatmember[]
   countbatches Countbatch[]
   friends1     Friend[]     @relation("User1")
