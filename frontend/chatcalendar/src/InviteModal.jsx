@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-export default function InviteModal({ onClose, participants = [], myEmail }) {
+export default function InviteModal({ onClose, participants = [], myEmail, myUsername, chatroomName, chatroomId }) {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -55,8 +55,13 @@ export default function InviteModal({ onClose, participants = [], myEmail }) {
         toast("✅ 招待しました");
       } else if (data?.reason === "already") {
         toast("⚠️ すでに参加しています");
-      } else if (data?.reason === "notfound") {
-        toast("❌ ユーザーが見つかりません");
+      } else if (data?.reason === "invalid_email") { toast("正しいメールアドレスを入力してください") } else if (data?.reason === "notfound") {
+        if (!window.confirm("未登録なのでメールで招待リンクを送りますか？")) return;
+        await fetch("/api/invite-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, myUsername: myUsername, chatroomName: chatroomName, chatroomId: chatroomId })
+        })
       } else {
         toast("❌ 招待に失敗しました");
       }

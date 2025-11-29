@@ -126,3 +126,11 @@ model Reaction{
   message   Chatmessage     @relation(fields: [messageId], references:  [id])
   @@unique([userId, messageId, emoji])
 }
+model Invite{
+  id           Int          @id @default(autoincrement())
+  email   String
+  token   String   @unique
+  chatroomId   String
+  createdAt  DateTime @default(now())
+  invited    Boolean @default(false)
+}

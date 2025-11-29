@@ -9,6 +9,8 @@ const server =http.createServer(app);
 const io =require("socket.io")(server);
 const session = require('express-session');
 const { google } = require('googleapis');
+const crypto = require('crypto');
+
 
 
 
@@ -73,7 +75,6 @@ passport.serializeUser((user, done) => {
   }
   if (!user.email) {
     console.error('serializeUser: user.email is missing', user);
-    // ここで無理に進めず、エラーにするか
     return done(new Error('User email is missing'), null);
   }
 
@@ -187,12 +188,22 @@ passport.use('google', new GoogleStrategy({
     }
   }
 ));
-app.get('/auth/google',
-  passport.authenticate('google', { scope:
-      [ 'email', 'profile', 'https://www.googleapis.com/auth/calendar' ],accessType: 'offline', prompt: 'consent'  }
-));
+app.get('/auth/google', (req, res, next) => {
+  const options = {
+    scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar'],
+    accessType: 'offline',
+    prompt: 'consent',
+  };
+
+  const inviteToken = getPendingInviteToken(req);
+  if (inviteToken) {
+    options.state = `invite:${encodeURIComponent(inviteToken)}`;
+  }
+
+  passport.authenticate('google', options)(req, res, next);
+});
 app.get('/auth/google/link', logincheck, (req, res, next) => {
-  const currentEmail = req.session.logined;  // logincheck 通ってるから必ずあるはず
+  const currentEmail = req.session.logined;  
   console.log('[link] sid=', req.sessionID, 'logined=', currentEmail);
 
   req.session.googleLinkReturnTo =
@@ -200,7 +211,7 @@ app.get('/auth/google/link', logincheck, (req, res, next) => {
     req.headers.referer ||
     '/chatcalendar';
 
-  // state に今ログインしてるメールを埋め込む
+ 
   const state = 'link:' + encodeURIComponent(currentEmail);
 
   passport.authenticate('google', {
@@ -240,8 +251,19 @@ app.get(
     if (!req.user) return res.redirect('/login');
 
     const state = req.query.state || '';
+    const inviteState = state.startsWith('invite:');
+    let invitePayload = null;
 
-    // ====== Google連携フロー ======
+    if (inviteState) {
+      const inviteToken = decodeURIComponent(state.slice('invite:'.length));
+      invitePayload = await prisma.invite.findUnique({ where: { token: inviteToken } });
+      if (!invitePayload || invitePayload.invited) {
+        clearInviteSession(req, res);
+        return res.redirect('/login?error=invalid-invite');
+      }
+    }
+
+    // ====== Googleカレンダー連携 ======
     if (state.startsWith('link:')) {
       const linkedEmail = decodeURIComponent(state.slice('link:'.length));
       if (state.startsWith('link:')) {
@@ -279,6 +301,39 @@ app.get(
     req.session.logined = req.user.email;
     req.session.username = req.user.username;
     req.session.useremail = req.user.email;
+    const storedInvite = await resolveInviteContext(req, res);
+    const pendingInvite = invitePayload || storedInvite;
+    if (pendingInvite){
+      const chatroomId = pendingInvite.chatroomId;
+      const inviteToken = invitePayload?.token || pendingInvite.token;
+      const email = req.session.logined;
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        clearInviteSession(req, res);
+        return res.redirect('/login?error=user-not-found');
+      }
+      const inviteRecord =
+        invitePayload ||
+        (await prisma.invite.findUnique({ where: { token: inviteToken } }));
+      if (!inviteRecord || inviteRecord.invited) {
+        clearInviteSession(req, res);
+        return res.redirect('/login?error=invalid-invite');
+      }
+      try {
+        await prisma.chatmember.create({
+          data: { chatroomId, userId: user.id}
+        });
+      } catch (e) {
+        if (e.code !== 'P2002') throw e; 
+      }
+      await prisma.invite.update({
+        where: { token: inviteToken },
+        data: { invited: true }
+      });
+      req.session.chatplay = chatroomId;
+      clearInviteSession(req, res);
+      return res.redirect('/chatcalendar');
+    }
     res.redirect('/privatecalendar');
   }
 );
@@ -400,7 +455,7 @@ function verifiedcheck(req,res,next){
   next();
 }
 
-// 0をつける
+
 function normalizeDate(dateStr) {
   const parts = dateStr.split('-');
   if (parts.length !== 3) throw new Error('date形式が不正');
@@ -408,6 +463,29 @@ function normalizeDate(dateStr) {
   const month = parts[1].padStart(2, '0');
   const day = parts[2].padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function rememberInviteSession(req, res, invite) {
+  req.session.pendingInvite = {
+    token: invite.token,
+    chatroomId: invite.chatroomId,
+    email: invite.email,
+  };
+}
+
+function clearInviteSession(req, res) {
+  delete req.session.pendingInvite;
+}
+
+async function resolveInviteContext(req, res) {
+  if (req.session.pendingInvite) {
+    return req.session.pendingInvite;
+  }
+  return null;
+}
+
+function getPendingInviteToken(req) {
+  return req.session.pendingInvite?.token || null;
 }
 app.get('/',(req,res)=>{
   res.redirect('/login');
@@ -513,6 +591,48 @@ app.post(
     }
   }
 );
+app.post('/api/invite-email',async(req,res)=>{
+  const {email,myUsername,chatroomName,chatroomId}=req.body
+  try{
+      const useremail = req.session.logined;
+      const user = await prisma.user.findUnique({ where: { email:useremail } });
+      const Token = crypto.randomBytes(32).toString('hex');
+      const baseUrl = process.env.APP_BASE_URL || 'http://localhost:8000';
+      const tokenurl=`${baseUrl}/invite/email?token=${Token}`
+      await prisma.invite.create({
+        data:{
+          email,
+          chatroomId,
+          token:Token
+        }
+      })
+      const invited = await transporter.sendMail({
+            from: process.env.GMAIL_USER, 
+            to: email, 
+            subject: "ChatCalendar招待メール", 
+            text: `招待メール`, 
+            html: `
+              <div>
+                <p>${myUsername}さんがあなたを${chatroomName}に招待しました。</p>
+                <p><a href="${tokenurl}">クリック</a>こちらをクリックして参加してください。</p>
+                <p>心当たりがない場合はリンクをクリックせず、このメールを破棄してください。</p>
+              </div>`
+          });
+          return res.json({ ok: true });
+      }catch (err) {
+    console.error('invite-email error', err);
+    return res.status(500).json({ ok: false, message: '招待メール送信に失敗しました' });
+  }
+})
+app.get('/invite/email', async (req, res) => {
+  const { token } = req.query;
+  const invite = await prisma.invite.findUnique({ where: { token } });
+  if (!invite || invite.invited) return res.status(400).send('無効な招待です');
+
+  rememberInviteSession(req, res, invite);
+  res.redirect('/login'); // 
+});
+
 app.get('/verify',(req, res)=>{
   res.render('verify');
 })
@@ -530,6 +650,20 @@ app.post('/verify',async (req,res)=>{
         where:{email},
         data: { isVerified: true },
       })
+      const inviteContext = await resolveInviteContext(req, res);
+      if (inviteContext){
+      const chatroomId=inviteContext.chatroomId;
+      const token=inviteContext.token;
+      try {
+        await prisma.chatmember.create({
+          data: { chatroomId, userId: user.id}
+        });
+      } catch (e) {
+        if (e.code !== 'P2002') throw e; 
+      }
+      await prisma.invite.update({ where: { token }, data: { invited: true } });
+      clearInviteSession(req, res);
+    }
       res.redirect('/login');
     }else if(
       now>expireTime
@@ -576,6 +710,14 @@ app.post("/login",async (req,res)=>{
     req.session.useremail = user.email
     req.session.logined=user.email
     req.session.username=user.username
+    const inviteContext = await resolveInviteContext(req, res);
+    if (inviteContext){
+      const chatroomId=inviteContext.chatroomId;
+      clearInviteSession(req, res);
+      req.session.chatplay=chatroomId
+      res.redirect('/chatcalendar');
+      return
+    }
     res.redirect('/privatecalendar')
   }catch (error) {
       console.error(error);
@@ -651,9 +793,11 @@ app.get('/get-memo', logincheck, async (req, res) => {
 
 
 app.get('/logout', (req, res) => {
-  req.session.destroy(()=>{
-    res.redirect('/login')
-  })
+  delete req.session.useremail;
+  delete req.session.logined;
+  delete req.session.username;
+  delete req.session.chatplay;
+  res.redirect('/login')
 });
 
 app.use(express.json());
@@ -676,7 +820,7 @@ app.get('/api/enterchat', logincheck, async (req, res) => {
     id: cm.chatroom.id
   }));
 
-  res.json(chatlist); // ← pugではなくJSONで返す
+  res.json(chatlist); 
 });
 
 app.post('/api/sessionchat',logincheck,async(req,res)=>{
@@ -852,7 +996,7 @@ app.get('/userinvite',async (req, res) => {
 
 function socketlogincheck(socket, next) {
   if (!socket.request.session || !socket.request.session.logined) {
-    next(new Error('ログインしてください')); // res.redirectの代わり
+    next(new Error('ログインしてください')); 
   } else {
     next();
   }
@@ -1007,7 +1151,7 @@ io.on('connection', async(socket) => {
           important
         },
         include: {
-          user: { select: { username: true, email: true } }, // ← これを追加！
+          user: { select: { username: true, email: true } }, 
         },
       });
       console.log("保存されたchatmessage:", saved);
@@ -1027,7 +1171,7 @@ io.on('connection', async(socket) => {
       });
   
   
-      // 並列 upsert → 成功したらそのユーザーroomへ通知
+    
       await Promise.all(otherMembers.map(async (m) => {
         try {
           const upserted = await prisma.countbatch.upsert({
@@ -1177,7 +1321,7 @@ io.on('connection', async(socket) => {
       }
       await prisma.chatroom.update({
         where: { id: chatroomId },
-        data: { authority: val }  // val は true/false
+        data: { authority: val }  
       });
       io.to(chatroomId).emit("authority-changed", { chatroomId, val });
     } catch (e) {
@@ -1288,7 +1432,7 @@ io.on('connection', async(socket) => {
         data: { userId: user.id, targetId: target.id },
       });
 
-      // 🔹 送った本人のソケットだけに返す
+      //  送った本人のソケットだけに返す
       io.to(socket.id).emit("favorite-added", {
         success: true,
         username: target.username,
@@ -1362,7 +1506,7 @@ io.on('connection', async(socket) => {
   socket.on("update-username", async (usernameData) => {
     const email = socket.request.session.useremail;
     const user = await prisma.user.findUnique({ where: { email } });
-    // 文字列かオブジェクトかを判定する
+    // 文字列かオブジェクトか判定する
     const username =
       typeof usernameData === "string"
         ? usernameData
@@ -1411,6 +1555,9 @@ app.post('/api/invite', logincheck, loginchatcheck, async (req, res) => {
     const room = await prisma.chatroom.findUnique({ where: { id: chatroomId } });
     if (!room) return res.status(404).json({ ok: false, reason: 'room_not_found' });
     const target = await prisma.user.findUnique({ where: { email } });
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({ ok: false, reason: 'invalid_email' });
+    }
     if (!target) return res.status(200).json({ ok: false, reason: 'notfound' });
     const exists = await prisma.chatmember.findFirst({
       where: { chatroomId, userId: target.id },
@@ -1542,11 +1689,9 @@ app.post('/save-memo', logincheck, async (req, res) => {
       }
     }
 
-    // 非空メモがある場合のみ newmemo を送る
     if (savedMemoCount > 0) {
       io.to(user.id).emit('newmemo', datestamp.toISOString().split('T')[0]);
     } else {
-      // もしその日のメモが全削除なら、逆に「削除通知」を送ってUI更新する
       io.to(user.id).emit('deletememo', datestamp.toISOString().split('T')[0]);
     }
 
@@ -1558,7 +1703,7 @@ app.post('/save-memo', logincheck, async (req, res) => {
 });
   app.post('/add-memo', logincheck, async (req, res) => {
   const email = req.session.logined;
-  const { date, memoList } = req.body; // ← memoList は配列
+  const { date, memoList } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
 
   try {
@@ -1567,7 +1712,6 @@ app.post('/save-memo', logincheck, async (req, res) => {
       return res.status(400).send('無効な日付です');
     }
 
-    // その日のPostを探す（なければ作る）
     let post = await prisma.post.findFirst({
       where: { userId: user.id, createdAt: datestamp },
     });
@@ -1599,11 +1743,10 @@ app.post('/save-memo', logincheck, async (req, res) => {
       }
     }
 
-    // 非空メモがある場合のみ newmemo を送る
+   
     if (savedMemoCount > 0) {
       io.to(user.id).emit('newmemo', datestamp.toISOString().split('T')[0]);
     } else {
-      // もしその日のメモが全削除なら、逆に「削除通知」を送ってUI更新する
       io.to(user.id).emit('deletememo', datestamp.toISOString().split('T')[0]);
     }
 
@@ -1696,7 +1839,7 @@ app.get('/getchat', logincheck, loginchatcheck, async (req, res) => {
 
     res.json({
       chat: result,
-      user, // ログイン中のユーザー情報
+      user, 
     });
     
   } catch (error) {

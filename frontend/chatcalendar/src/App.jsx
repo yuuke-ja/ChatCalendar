@@ -648,6 +648,9 @@ export default function App() {
           onClose={() => setInviteModalOpen(false)}
           participants={participants}
           myEmail={myEmail}
+          myUsername={myUsername}
+          chatroomName={chatroomName}
+          chatroomId={chatroomId}
         />
       )}
       {newChatModalOpen && (
