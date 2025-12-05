@@ -133,7 +133,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     if (!selectedDate || !roomId) return;
     (async () => {
       try {
-        const res = await fetch(`/getchat?date=${selectedDate}`);
+        const res = await fetch(`/getchat?date=${selectedDate}&roomId=${encodeURIComponent(roomId)}`);
         const { chat } = await res.json();
         setChatList(prev => {
           const serverChats = Array.isArray(chat) ? chat : [];
@@ -421,7 +421,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                             if (c.email === myEmail) {
                               setDeleteTarget({
                                 id: c.id,
-                                action: "both", // 両方出す
+                                action: "both",
                                 content: c.content,
                               });
                               return;
@@ -429,7 +429,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                             // 他人のメッセージ 保存のみ
                             setDeleteTarget({
                               id: c.id,
-                              action: "calendar", // 保存だけ
+                              action: "calendar",
                               content: c.content,
                             });
                           }}

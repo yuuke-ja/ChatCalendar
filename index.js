@@ -61,6 +61,8 @@ const sessionsocket = session({
 io.use((socket, next) => {
   sessionsocket(socket.request, {}, next);
 });
+
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sessionsocket); 
@@ -330,9 +332,8 @@ app.get(
         where: { token: inviteToken },
         data: { invited: true }
       });
-      req.session.chatplay = chatroomId;
       clearInviteSession(req, res);
-      return res.redirect('/chatcalendar');
+      return res.redirect(`/chatcalendar?roomId=${encodeURIComponent(chatroomId)}`);
     }
     res.redirect('/privatecalendar');
   }
@@ -438,13 +439,30 @@ function logincheck(req, res, next) {
   }
 }
 
-function loginchatcheck(req, res, next) {
-  if (req.session && req.session.chatplay) { // ← 安全にチェック
-    next();
-  } else {
-    res.redirect('/logout');
-  }
+async function loginchatcheck(req, res, next) {
+  // roomIdはクエリ/ボディ/パラメータのどれかから取る
+  const roomId =
+    req.query.roomId ||
+    req.body.chatroomId ||
+    req.params.roomId;
+
+  if (!roomId) return res.redirect('/privatecalendar');
+
+  const email = req.session.logined;
+  if (!email) return res.redirect('/login');
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return res.redirect('/login');
+
+  const member = await prisma.chatmember.findFirst({
+    where: { chatroomId: roomId, userId: user.id },
+  });
+  if (!member) return res.redirect('/privatecalendar');
+
+  req.chatroomId = roomId;
+  next();
 }
+
 function verifiedcheck(req,res,next){
   if(!req.session.userId){
     res.redirect('/newuser')
@@ -493,7 +511,7 @@ app.get('/',(req,res)=>{
 app.get('/newuser',(req,res)=>{
   res.render('newuser')
 });
-// 新規ユーザー登録のエンドポイント
+// 新規ユーザー登録
 app.post(
   
   '/newuser',
@@ -714,9 +732,7 @@ app.post("/login",async (req,res)=>{
     if (inviteContext){
       const chatroomId=inviteContext.chatroomId;
       clearInviteSession(req, res);
-      req.session.chatplay=chatroomId
-      res.redirect('/chatcalendar');
-      return
+      return res.redirect(`/chatcalendar?roomId=${encodeURIComponent(chatroomId)}`);
     }
     res.redirect('/privatecalendar')
   }catch (error) {
@@ -796,7 +812,6 @@ app.get('/logout', (req, res) => {
   delete req.session.useremail;
   delete req.session.logined;
   delete req.session.username;
-  delete req.session.chatplay;
   res.redirect('/login')
 });
 
@@ -823,16 +838,7 @@ app.get('/api/enterchat', logincheck, async (req, res) => {
   res.json(chatlist); 
 });
 
-app.post('/api/sessionchat',logincheck,async(req,res)=>{
-try{
-  const {chatroomid}=req.body;
-  req.session.chatplay=chatroomid
-  res.json({ success: true, chatroomid });
-}catch (error) {
-  console.error(error);
-  res.status(500).send('サーバーエラー');
-}
-})
+
 
 app.post('/api/deletecount', loginchatcheck, async (req,res) =>{
   try{
@@ -894,18 +900,22 @@ app.post('/api/mycountbatch/all',logincheck,  async (req, res) => {
 
 
 
-app.get('/api/chatcalendar-info', logincheck,loginchatcheck, async (req, res) => {
-  const chatroomId = req.session.chatplay;
+app.get('/api/chatcalendar-info', logincheck, async (req, res) => {
+  const chatroomId = req.query.roomId || req.params.roomId
   console.log(`あいデー${chatroomId}`)
+  if (!chatroomId) return res.redirect('/privatecalendar');
   const username = req.session.username;
   const useremail = req.session.useremail;
+  const user = await prisma.user.findUnique({ where: { email: useremail } });
+  if (!user)  return res.redirect('/login');
+  const member = await prisma.chatmember.findFirst({ where: { chatroomId, userId: user.id } });
+  if (!member) return res.redirect('/privatecalendar');
+
   const chatroom = await prisma.chatroom.findUnique({ where: { id: chatroomId } });
-  if (!chatroom) {
-    return res.status(404).json({ error: 'チャットルームが見つかりません' });
-  }
+  if (!chatroom) return res.redirect('/privatecalendar');
   const chatss = await prisma.chatmessage.findMany({
     where: {
-      chatroomId: chatroomId, // ← ここを chatroomId にする
+      chatroomId: chatroomId, 
       OR: [
         { content: { not: "" } },
         {
@@ -1547,13 +1557,18 @@ io.on('connection', async(socket) => {
     });
   });
 //招待真
-app.post('/api/invite', logincheck, loginchatcheck, async (req, res) => {
+app.post('/api/invite', logincheck,  async (req, res) => {
   try {
-    const chatroomId = req.session.chatplay;
+    const chatroomId = req.query.roomId;
+    if (!chatroomId) return res.redirect('/privatecalendar');
     const { email } = req.body || {};
     if (!email) return res.status(400).json({ ok: false, reason: 'bad_request' });
     const room = await prisma.chatroom.findUnique({ where: { id: chatroomId } });
     if (!room) return res.status(404).json({ ok: false, reason: 'room_not_found' });
+    const inviter = await prisma.user.findUnique({ where: { email: req.session.useremail } });
+    if (!inviter) return res.redirect('/login');
+    const inviterMember = await prisma.chatmember.findFirst({ where: { chatroomId, userId: inviter.id } });
+    if (!inviterMember) return res.redirect('/privatecalendar');
     const target = await prisma.user.findUnique({ where: { email } });
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return res.status(400).json({ ok: false, reason: 'invalid_email' });
@@ -1587,61 +1602,6 @@ app.post('/api/invite', logincheck, loginchatcheck, async (req, res) => {
 
 
 
-  //ユーザを招待
-app.post('/userinvite',logincheck,loginchatcheck,async (req,res)=>{
-  const chatroomid=req.session.chatplay
-  const chatrooms=await prisma.chatroom.findUnique({where:{id:chatroomid}})
-  const {email}=req.body;
-  console.log('フレンドで追加',req.body)
-  const user=await prisma.user.findUnique({where:{email}})
-  if (!user){
-    return res.redirect('/userinvite?invite=false&reason=notfound'); 
-  }
-  const membercheck=await prisma.chatmember.findFirst({
-    where:{
-      chatroomId:chatrooms.id,
-      userId:user.id,
-    }
-  });
-  if (membercheck){
-    return res.redirect('/userinvite?invite=false&reason=already');
-  }
-  try{
-    await prisma.chatmember.create({
-      data:{
-        chatroomId:chatrooms.id,
-        userId:user.id,
-      }
-    })
-    const members=await prisma.chatmember.findMany({
-      where: {
-        chatroomId: chatrooms.id
-      },
-      include:{
-        user:{
-          select:{username:true,email:true}
-        }
-      }
-    })
-    const participants= members.map(m => ({
-      name: m.user.username,
-      email: m.user.email,
-      role:m.role
-
-    }))
-    io.to(chatrooms.id).emit('participants', { participants });
-    io.to(user.id).emit('invitelist',{
-      chatid:chatrooms.chatid,
-      id:chatrooms.id
-    })
-    res.redirect('/userinvite?invite=true')
-    
-  }catch (error) {
-    console.error('DBエラー:', error);
-    res.redirect('/userinvite?invite=false&reason=error')
-
-  }
-});
 app.post('/save-memo', logincheck, async (req, res) => {
   const email = req.session.logined;
   const { date, memoList } = req.body; 
@@ -1797,26 +1757,24 @@ app.post('/save-memo', logincheck, async (req, res) => {
   
 
 })
-app.get('/getchat', logincheck, loginchatcheck, async (req, res) => {
+app.get('/getchat', logincheck,  async (req, res) => {
   try {
     if (!req.query.date) {
       res.status(400).send('dateパラメータが必要です');
       return;
     }
-
+    const chatroomid= req.query.roomId
+    if (!chatroomid) return res.redirect('/privatecalendar');
     const normalizedDate = normalizeDate(req.query.date);
     const start = new Date(normalizedDate + 'T00:00:00.000Z');
     const end = new Date(normalizedDate + 'T23:59:59.999Z');
-
     const email = req.session.logined;
     const user = await prisma.user.findUnique({ where: { email } });
-
-    const chatroomid = req.session.chatplay;
+    if (!user) return res.redirect('/login');
+    const member = await prisma.chatmember.findFirst({ where: { chatroomId: chatroomid, userId: user.id } });
+    if (!member) return res.redirect('/privatecalendar');
     const chatroom = await prisma.chatroom.findUnique({ where: { id: chatroomid } });
-
-    if (!chatroom) {
-      return res.status(404).send('チャットルームが見つかりません');
-    }
+    if (!chatroom) return res.redirect('/privatecalendar');
     if (isNaN(start) || isNaN(end)) {
       return res.status(400).send('無効な日付です');
     }
@@ -1977,20 +1935,26 @@ app.post('/save-googlecalendar',logincheck,async(req,res)=>{
   }
 
 })
-app.get('/getgooglelist',logincheck,loginchatcheck,async(req,res)=>{
+app.get('/getgooglelist',logincheck,async(req,res)=>{
   const email = req.session.logined;
   const user=await prisma.user.findUnique({ where: { email } });
   res.json({ googleAccessToken: user.googleAccessToken, googleRefreshToken: user.googleRefreshToken })
 })
-
+function roomIdGuard(req, res, next) {
+  const roomId = req.query.roomId;
+  if (!roomId ) {
+    return res.redirect('/privatecalendar');
+  }
+  next();
+}
 // チャットカレンダー
 const chatPath = '/app/frontend/chatcalendar/dist';
 
-app.get('/chatcalendar' ,logincheck,(req,res)=>{
+app.get('/chatcalendar' ,logincheck,roomIdGuard,(req,res)=>{
   res.sendFile(path.join(chatPath, 'index.html'));
 })
 app.use('/chatcalendar', express.static(chatPath));
-app.get('/chatcalendar/*', logincheck, (req, res) => {
+app.get('/chatcalendar/*', logincheck,roomIdGuard, (req, res) => {
   res.sendFile(path.join(chatPath, 'index.html'));
 });
 

@@ -92,13 +92,7 @@ export default function App() {
     </header>
   );
   const selectChatroom = async (chatId) => {
-    await fetch('/api/sessionchat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatroomid: chatId }),
-    });
-    window.location.href = '/chatcalendar';
-
+    window.location.href = `/chatcalendar?roomId=${encodeURIComponent(chatId)}`;
   }
 
   // 初期化 & socket 接続

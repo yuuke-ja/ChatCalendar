@@ -45,11 +45,11 @@ export default function InviteModal({ onClose, participants = [], myEmail, myUse
 
     try {
       setInviting(prev => ({ ...prev, [email]: true }));
-      const res = await fetch("/api/invite", {
+      const res = await fetch(`/api/invite?roomId=${encodeURIComponent(chatroomId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
-      });
+      }); 
       const data = await res.json();
       if (res.ok && data?.ok) {
         toast("✅ 招待しました");

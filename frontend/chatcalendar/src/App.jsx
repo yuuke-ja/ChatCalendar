@@ -69,7 +69,6 @@ export default function App() {
       case 'member':
         return 'メンバー';
       default:
-        // 未知のロールの場合のデフォルト値
         return role;
     }
   };
@@ -109,15 +108,15 @@ export default function App() {
 
   useEffect(() => {
     async function fetchChatList() {
-      const res = await fetch('/api/enterchat'); // 参加一覧取得用API
+      const res = await fetch('/api/enterchat');
       const data = await res.json();
-      setChatList(data); // stateに保存
+      setChatList(data);
     }
     fetchChatList();
   }, []);
 
 
-  // 当日変更チェック（10秒毎）
+  // 当日変更チェック（10秒毎)
   useEffect(() => {
     const today = new Date().getDate();
     const timer = setInterval(() => {
@@ -163,12 +162,12 @@ export default function App() {
     </header>
   );
   const selectChatroom = async (chatId) => {
-    await fetch('/api/sessionchat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatroomid: chatId }),
-    });
-    const res = await fetch('/api/chatcalendar-info');
+    window.history.replaceState(null, "", `/chatcalendar?roomId=${chatId}`);
+    const res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`);
+    if (!res.ok || res.redirected) {
+      window.location.href = res.url || '/privatecalendar';
+      return;
+    }
     const data = await res.json();
 
     setChatroomId(data.chatroomId);
@@ -188,9 +187,6 @@ export default function App() {
     });
     const counts = await countRes.json();
     setcountbatch(counts);
-
-
-
   };
 
 
@@ -200,7 +196,13 @@ export default function App() {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch("/api/chatcalendar-info");
+        const urlRoomId = new URLSearchParams(window.location.search).get("roomId");
+        if (!urlRoomId) return;
+        const res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(urlRoomId)}`);
+        if (!res.ok || res.redirected) {
+          window.location.href = res.url || '/privatecalendar';
+          return;
+        }
         const data = await res.json();
         if (!mounted) return;
 
