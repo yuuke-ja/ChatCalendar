@@ -56,6 +56,7 @@ export default function App() {
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
+  const pendingRequestRef = useRef(0);
   const myrole = participants.find(p => p.email === myEmail)?.role || "member";
   const canSeeinvitationButton = invitationauthorityOn
     ? (myrole === "leader" || myrole === "subleader")
@@ -162,6 +163,7 @@ export default function App() {
     </header>
   );
   const selectChatroom = async (chatId) => {
+    const seq = ++pendingRequestRef.current; // このリクエストが最新か判定するための番号
     // 即座に選択を反映させる
     setChatroomId(chatId);
     window.history.replaceState(null, "", `/chatcalendar?roomId=${chatId}`);
@@ -171,6 +173,8 @@ export default function App() {
       return;
     }
     const data = await res.json();
+    // 他の選択リクエストに追い抜かれていたら破棄
+    if (seq !== pendingRequestRef.current) return;
 
     setChatroomId(data.chatroomId);
     setAuthorityOn(data.authority)
