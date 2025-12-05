@@ -162,6 +162,8 @@ export default function App() {
     </header>
   );
   const selectChatroom = async (chatId) => {
+    // 即座に選択を反映させる
+    setChatroomId(chatId);
     window.history.replaceState(null, "", `/chatcalendar?roomId=${chatId}`);
     const res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`);
     if (!res.ok || res.redirected) {
