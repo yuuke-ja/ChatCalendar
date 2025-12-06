@@ -61,6 +61,7 @@ export default function App() {
   const canSeeinvitationButton = invitationauthorityOn
     ? (myrole === "leader" || myrole === "subleader")
     : true;
+  const fetchAbortRef = useRef(null);
   const getRoleText = (role) => {
     switch (role) {
       case 'leader':
@@ -167,7 +168,21 @@ export default function App() {
     // 即座に選択を反映させる
     setChatroomId(chatId);
     window.history.replaceState(null, "", `/chatcalendar?roomId=${chatId}`);
-    const res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`);
+    // 直前のリクエストが残っていればキャンセル
+    if (fetchAbortRef.current) {
+      fetchAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    let res;
+    try {
+      res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`, {
+        signal: controller.signal,
+      });
+    } catch (e) {
+      if (e.name === "AbortError") return;
+      throw e;
+    }
     if (!res.ok || res.redirected) {
       window.location.href = res.url || '/privatecalendar';
       return;
@@ -186,11 +201,18 @@ export default function App() {
     setparticipants(data.participants || [])
     setSelectedDate(null);
     socketRef.current?.emit("joinRoom", data.chatroomId);
-    const countRes = await fetch('/api/mycountbatch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatroomId: data.chatroomId })
-    });
+    let countRes;
+    try {
+      countRes = await fetch('/api/mycountbatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatroomId: data.chatroomId }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      if (e.name === "AbortError") return;
+      throw e;
+    }
     const counts = await countRes.json();
     setcountbatch(counts);
   };
