@@ -206,16 +206,27 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   }, [chatList]);
 
 
-
+  //仮から正式データへ置き換え
   useEffect(() => {
     if (!socket) return;
 
     const handler = (data) => {
       if (!data || String(data.chatroomId) !== String(roomId)) return;
       if (data.date === selectedDate && data.chat) {
+        //探して置き換え
         setChatList((prev) => {
-          const next = Array.isArray(prev) ? [...prev, data.chat] : [data.chat];
-          return next;
+          const idx = prev.findIndex(c =>
+            c.provisional &&
+            c.email === data.chat.email &&
+            c.content === data.chat.content &&
+            c.date === data.chat.date
+          );
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = data.chat; // 正式データで置き換える
+            return next;
+          }
+          return [...prev, data.chat];
         });
         setTimeout(scrollToBottom, 50);
       }
@@ -271,11 +282,27 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       email: myEmail,
       important: Important,
     });
+    const provisionalId = `temp-${Date.now()}`;
+    const provisional = {
+      id: provisionalId,
+      chatroomId: roomId,
+      content: text.trim(),
+      imageUrl,
+      email: myEmail,
+      date: selectedDate,
+      user: { username: myEmail, email: myEmail },
+      important: Important,
+      reactions: [],
+      deleted: false,
+      provisional: true,
+    };
+
     setText("");
     setImportant(false);
     setImageFile(null);
     setPreviewSrc(null);
   };
+
 
   return (
     <div id="chatmodal" className="chatmodal" style={{ display: "block" }}>
