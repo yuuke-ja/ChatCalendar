@@ -214,20 +214,26 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       if (!data || String(data.chatroomId) !== String(roomId)) return;
       if (data.date === selectedDate && data.chat) {
         //探して置き換え
-        setChatList((prev) => {
-          const idx = prev.findIndex(c =>
-            c.provisional &&
-            c.email === data.chat.email &&
-            c.content === data.chat.content &&
-            c.date === data.chat.date
-          );
+        const normalizeDate = v => (v ? String(v).split('T')[0] : '');
+        setChatList(prev => {
+          if (!Array.isArray(prev)) return [data.chat];
+          const idx = prev.findIndex((c, i) => {
+            console.log('cand', i, c.provisional, c.email, data.chat.email, c.content, data.chat.content, c.date, data.chat.date);
+            return (
+              c.provisional &&
+              c.email === data.chat.email &&
+              c.content === data.chat.content &&
+              normalizeDate(c.date) === normalizeDate(data.chat.date)
+            );
+          });
           if (idx !== -1) {
             const next = [...prev];
-            next[idx] = data.chat; // 正式データで置き換える
+            next[idx] = data.chat;
             return next;
           }
           return [...prev, data.chat];
         });
+
         setTimeout(scrollToBottom, 50);
       }
     };
@@ -296,6 +302,11 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       deleted: false,
       provisional: true,
     };
+    setChatList(prev => {
+      const list = Array.isArray(prev) ? prev : [];
+      return [...list, provisional];
+    });
+
 
     setText("");
     setImportant(false);
