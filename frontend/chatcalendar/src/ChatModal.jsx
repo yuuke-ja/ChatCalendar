@@ -300,6 +300,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       important: Important,
       reactions: [],
       deleted: false,
+      createdAt: new Date().toISOString(),
       provisional: true,
     };
     setChatList(prev => {
