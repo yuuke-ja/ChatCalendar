@@ -97,6 +97,8 @@ model Chatmessage {
   userId     Int  
   important  Boolean  @default(false)
   deleted    Boolean  @default(false)
+  contentdeleted Boolean  @default(false)
+  imagedeleted    Boolean  @default(false)
   user       User     @relation(fields: [userId], references: [id])
   chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
   reactions  Reaction[] 
@@ -121,10 +123,10 @@ model Reaction{
   emoji   String
   userId   Int
   messageId   Int
-  
+  type   String?
   user       User     @relation(fields: [userId], references: [id])
   message   Chatmessage     @relation(fields: [messageId], references:  [id])
-  @@unique([userId, messageId, emoji])
+  @@unique([userId, messageId, emoji, type])
 }
 model Invite{
   id           Int          @id @default(autoincrement())

@@ -430,7 +430,7 @@ app.use(express.urlencoded({ extended: true }));  //formのpostを受け取る�
 
 app.use(express.static(path.join(__dirname))); // 静的ファイル
 
-app.use(express.static('public'))
+app.use(express.static('public', { extensions: ['html'] }))
 function logincheck(req, res, next) {
   if (req.session && req.session.logined) { // ← 安全にチェック
     next();
@@ -1082,17 +1082,18 @@ io.on('connection', async(socket) => {
   
   
   console.log('ユーザー接続2');
-  socket.on("savereaction",async({messageId,emoji,roomId,email})=>{
+  socket.on("savereaction",async({messageId,emoji,roomId,email,type})=>{
     try{
       const user = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
       console.log(`ユーザ${user}`)
       console.log(`ユーザ${user.username}`)
       const check = await prisma.reaction.findUnique({
         where: {
-          userId_messageId_emoji: { 
+          userId_messageId_emoji_type: { 
             userId: user.id, 
             messageId, 
-            emoji 
+            emoji,
+            type
           }
         }
       });
@@ -1101,9 +1102,9 @@ io.on('connection', async(socket) => {
         data:{
           messageId:messageId,
           userId:user.id,
-          emoji:emoji
+          emoji:emoji,
+          type:type
         }
-      
       })
       io.to(roomId).emit("newreaction", {
         type:"true",
@@ -1117,10 +1118,11 @@ io.on('connection', async(socket) => {
       }else{
         const deleted=await prisma.reaction.delete({
         where:{
-          userId_messageId_emoji: {
+          userId_messageId_emoji_type: {
             messageId:messageId,
             userId:user.id,
-            emoji:emoji
+            emoji:emoji,
+            type:type
           }
         }
       })
@@ -1218,21 +1220,23 @@ io.on('connection', async(socket) => {
       socket.emit("送信失敗");
     }
   });
-  socket.on("delete-message", async ({ messageId, roomId }) => {
+  socket.on("delete-message", async ({ messageId, roomId, type }) => {
     const message = await prisma.chatmessage.findUnique({
       where: { id: messageId },
-      select: { date: true, chatroomId: true }
+      select: { date: true, chatroomId: true , content: true, imageUrl: true}
     });
     if (!message) return;
-
-    await prisma.reaction.deleteMany({
-      where: { messageId }
-    });
+    const newcontent=type==="text" ? "" : message.content
+    const newimageUrl=type==="image" ? null : message.imageUrl
+    const textdeleted= type==="text" ? true : false
+    const imagedeleted= type==="image" ? true : false
+    const alldeleted=newcontent==="" && newimageUrl===null ? true : false
+    
     await prisma.chatmessage.update({
       where: { id: messageId },
-      data: { deleted: true, important: false, content: "", imageUrl: null }
+      data: { contentdeleted: textdeleted,imagedeleted:imagedeleted,deleted:alldeleted, important: false, content: newcontent, imageUrl: newimageUrl }
     });
-    io.to(roomId).emit("message-deleted", { messageId });
+    io.to(roomId).emit("message-deleted", { messageId, type });
 
     const affected = await prisma.countbatch.findMany({
       where: {
@@ -1241,7 +1245,10 @@ io.on('connection', async(socket) => {
         chatmessageId: { has: messageId }
       }
     });
-
+    if (!alldeleted) return;
+    await prisma.reaction.deleteMany({
+      where: { messageId }
+    });
     await Promise.all(
       affected.map(async (batch) => {
         const newList = batch.chatmessageId.filter((id) => id !== messageId);

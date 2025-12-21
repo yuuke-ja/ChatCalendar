@@ -109,6 +109,27 @@ td:last-child{ color:blue; }
   display: flex;
   flex-direction: column;
   z-index: 1000;
+  position: fixed;
+}
+#chatmodal .chat-uploading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: all;
+}
+#chatmodal .chat-uploading-indicator {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .modal-header {
   height: 60px;
@@ -1362,6 +1383,17 @@ button { position: relative; }
   transform: scale(1.05);
 }
 
+.uploading-overlay {
+  position: fixed; 
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: auto; 
+}
+
 
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.97); }
@@ -1949,7 +1981,7 @@ content-deletechat{
 }
 .myuser .content-sub {
   left: auto;
-  bottom: 44px !important;
+  bottom: 70px !important;
   font-size: 4px;
   right: 0px;
 }

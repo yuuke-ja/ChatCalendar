@@ -16,6 +16,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const [showImportantList, setShowImportantList] = useState(false);
   const [importantMessages, setImportantMessages] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [imageDeleteTarget, setImageDeleteTarget] = useState(null);
   const [previewSrc, setPreviewSrc] = useState(null);
   const [showopensavecalendar, setshowopensavecalendar] = useState(false)
   const [googletitle, setgoogletitle] = useState(false)
@@ -23,13 +24,14 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const [googleSaveTarget, setGoogleSaveTarget] = useState(null);
   const [googleAccessToken, setgoogleAccessToken] = useState("")
   const [googleRefreshToken, setgoogleRefreshToken] = useState("")
+  const [uploadImage, setUploadImage] = useState(false);
 
 
 
 
   const pickerRef = useRef(null);
 
-  const [showAllReactions, setShowAllReactions] = useState(null); // null or { messageId, reactions }
+  const [showAllReactions, setShowAllReactions] = useState(null); // null or { messageId, type, reactions }
   const canSeeImportantButton = authorityOn
     ? (myrole === "leader" || myrole === "subleader")
     : true;
@@ -81,6 +83,12 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
     }
   };
+  // メッセージ一覧が更新されたら常に下までスクロール
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatList]);
+
+  //外部クリックでメニューを閉じる
   useEffect(() => {
     const closeOnOutside = (e) => {
       const menu = document.querySelector(".content-sub");
@@ -93,6 +101,21 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     }
     return () => document.removeEventListener("mousedown", closeOnOutside);
   }, [deleteTarget]);
+
+  //外部クリックでメニューを閉じる画像
+  useEffect(() => {
+    const closeOnOutside = (e) => {
+      const menu = document.querySelector(".image-menu");
+      if (menu && menu.contains(e.target)) return;
+      setImageDeleteTarget(null);
+      setshowopensavecalendar(false);
+    };
+    if (imageDeleteTarget) {
+      document.addEventListener("mousedown", closeOnOutside);
+    }
+    return () => document.removeEventListener("mousedown", closeOnOutside);
+  }, [imageDeleteTarget]);
+
   useEffect(() => {
     fetch('/getgooglelist', { method: 'GET' })
       .then(res => res.json())
@@ -111,13 +134,14 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       setChatList((prev) => {
         if (!Array.isArray(prev)) return prev;
         return prev.map((chat) => {
-          if (chat.id === data.reaction.messageId) {
+          const matchId = chat.realId || chat.id;
+          if (matchId === data.reaction.messageId) {
             if (data.type === "true") {
               return { ...chat, reactions: [...(chat.reactions || []), data.reaction] };
             }
             return {
               ...chat,
-              reactions: (chat.reactions || []).filter((r) => r.id !== data.reaction.id),
+              reactions: (chat.reactions || []).filter((r) => !(r.id == data.reaction.id && r.type == data.reaction.type)),
             };
           }
           return chat;
@@ -162,14 +186,21 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   }, [selectedDate, roomId]);
   useEffect(() => {
     if (!socket) return;
-    const onDeleted = ({ messageId }) => {
+    const onDeleted = ({ messageId, type }) => {
       setChatList(prev => {
         if (!Array.isArray(prev)) return prev;
-        const updated = prev.map(c =>
-          c.id === messageId ? { ...c, deleted: true, content: "", imageUrl: null, important: false } : c
-        );
+        const updated = prev.map(c => {
+          if ((c.realId || c.id) === messageId) {
+            if (type === "text") {
+              return { ...c, contentdeleted: true, content: "", important: false };
+            } else if (type === "image") {
+              return { ...c, imagedeleted: true, imageUrl: null, important: false };
+            }
+          }
+          return c;
+        });
         // 削除されたメッセージを末尾に移動
-        const index = updated.findIndex(c => c.id === messageId);
+        const index = updated.findIndex(c => (c.realId || c.id) === messageId);
         if (index !== -1) {
           const [msg] = updated.splice(index, 1);
           updated.push(msg);
@@ -228,7 +259,14 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
           });
           if (idx !== -1) {
             const next = [...prev];
-            next[idx] = data.chat;
+            const optimisticId = prev[idx].id;
+            next[idx] = {
+              ...data.chat,
+              id: optimisticId,
+              provisional: false,
+              realId: data.chat.id
+            };
+
             return next;
           }
           return [...prev, data.chat];
@@ -257,43 +295,23 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   };
 
 
-  const saveReaction = (messageId, emoji) => {
+  const saveReaction = (messageId, emoji, type) => {
     if (!socket) return;
-    socket.emit("savereaction", { messageId, emoji, roomId, email: myEmail });
+    const idNum = Number(messageId);
+    if (!Number.isInteger(idNum)) return;
+    socket.emit("savereaction", { messageId: idNum, emoji, roomId, email: myEmail, type });
   };
 
   const handleSend = async () => {
     if (!socket) return;
     if ((!text || text.trim() === "") && !imageFile) return;
 
-    let imageUrl = null;
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append("image", imageFile);
-      try {
-        const res = await fetch("/upload-image", { method: "POST", body: formData });
-        const result = await res.json();
-        imageUrl = result.imageUrl;
-      } catch (err) {
-        alert("画像のアップロードに失敗しました");
-        return;
-      }
-    }
-
-    socket.emit("savechat", {
-      roomId,
-      date: selectedDate,
-      chat: text.trim(),
-      imageUrl,
-      email: myEmail,
-      important: Important,
-    });
     const provisionalId = `temp-${Date.now()}`;
     const provisional = {
       id: provisionalId,
       chatroomId: roomId,
       content: text.trim(),
-      imageUrl,
+      imageUrl: imageFile ? previewSrc : null, // 画像を先に表示
       email: myEmail,
       date: selectedDate,
       user: { username: myEmail, email: myEmail },
@@ -308,6 +326,32 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       return [...list, provisional];
     });
 
+    let imageUrl = null;
+    if (imageFile) {
+      setUploadImage(true);
+      const formData = new FormData();
+      formData.append("image", imageFile);
+      try {
+        const res = await fetch("/upload-image", { method: "POST", body: formData });
+        const result = await res.json();
+        imageUrl = result.imageUrl;
+      } catch (err) {
+        alert("画像のアップロードに失敗しました");
+        setUploadImage(false);
+        return;
+      } finally {
+        setUploadImage(false);
+      }
+    }
+
+    socket.emit("savechat", {
+      roomId,
+      date: selectedDate,
+      chat: text.trim(),
+      imageUrl,
+      email: myEmail,
+      important: Important,
+    });
 
     setText("");
     setImportant(false);
@@ -318,6 +362,11 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
   return (
     <div id="chatmodal" className="chatmodal" style={{ display: "block" }}>
+      {uploadImage && (
+        <div className="chat-uploading-overlay">
+          <div className="chat-uploading-indicator">画像をアップロード中...</div>
+        </div>
+      )}
       <div style={{ position: "relative" }}></div>
       <div className="modal-header">
         <span id="modal-date">{selectedDate}</span>
@@ -347,6 +396,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         )}
         <button onClick={closeModal}>閉じる</button>
       </div>
+
 
       {showImportantList && (
         <div
@@ -417,6 +467,8 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         {chatList === null ? null : chatList.length > 0 ? (
           chatList.map((c) => {
             const isDeleted = c.deleted;
+            const contentdelete = c.contentdeleted;
+            const imagedelete = c.imagedeleted;
             const hasContent = c.content && c.content.trim() !== "";
             const hasImage = c.imageUrl && c.imageUrl.trim() !== "";
 
@@ -434,282 +486,429 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
             return (
               <div key={c.id} id={`msg-${c.id}`} className={userclass}>
-                {isDeleted ? (
-                  // 削除済みメッセージ
-                  <div className="content-deletechat">
-                    {c.user.username} さんが {new Date(c.createdAt).toLocaleString()} の投稿を削除しました
+                <p className="date">{new Date(c.createdAt).toLocaleString()}</p>
+                {hasContent && !contentdelete && <p className="user">{c.user.username}</p>}
+                {contentdelete && (
+                  <div className="content-body">
+                    <div className="deleted-message">{c.user.username}さんがメッセージを削除しました。</div>
                   </div>
-                ) : (
-                  <>
-                    <p className="date">{new Date(c.createdAt).toLocaleString()}</p>
-                    <p className="user">{c.user.username}</p>
+                )}
+                {/* テキスト内容 */}
+                {hasContent && (
+                  <div className="content-body">
+                    <div
+                      className="content"
+                      onMouseEnter={() => setreactionmessageid({ messageId: c.id, type: "text" })}
+                      onMouseLeave={() => setreactionmessageid(null)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
 
-                    {/* テキスト内容 */}
-                    {hasContent && (
-                      <div className="content-body">
-                        <div
-                          className="content"
-                          onMouseEnter={() => setreactionmessageid(c.id)}
-                          onMouseLeave={() => setreactionmessageid(null)}
-                          onContextMenu={(e) => {
-                            e.preventDefault();
+                        if (c.deleted) return;
 
-                            if (c.deleted) return;
-
-                            // 自分のメッセージ  削除も保存も出す
-                            if (c.email === myEmail) {
-                              setDeleteTarget({
-                                id: c.id,
-                                action: "both",
-                                content: c.content,
-                              });
-                              return;
-                            }
-                            // 他人のメッセージ 保存のみ
-                            setDeleteTarget({
-                              id: c.id,
-                              action: "calendar",
-                              content: c.content,
-                            });
-                          }}
-                        >
-                          {c.content}
-                        </div>
-                        {deleteTarget && deleteTarget.id === c.id && (
-                          <div className="content-sub"  >
-                            {!showopensavecalendar && (
-                              <>
-                                {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
-                                  <button
-                                    onClick={() => {
-                                      if (!window.confirm("本当に削除しますか？")) return;
-                                      socket.emit("delete-message", {
-                                        messageId: deleteTarget.id,
-                                        roomId,
-                                        email: myEmail,
-                                      });
-                                      setDeleteTarget(null);
-                                    }}
-                                  >
-                                    削除
-                                  </button>
-                                )}
-                                {(deleteTarget.action === "calendar" || deleteTarget.action === "both") && (
-                                  <button
-                                    onClick={() => { setshowopensavecalendar(prev => !prev); }}
-                                  >
-                                    カレンダーに保存
-                                  </button>
-                                )}
-                              </>
-                            )}
-                            {showopensavecalendar && (
-                              <div className="save-options">
-                                <button onClick={async () => {
-                                  if (!deleteTarget.content) return;
-                                  const date = selectedDate;
-                                  try {
-                                    await fetch("/add-memo", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ date: date, memoList: [deleteTarget.content] }),
-                                    });
-                                    alert("マイカレンダーに保存しました");
-                                  } catch (err) {
-                                    console.error(err);
-                                    alert("保存に失敗しました");
-                                  }
-                                  setshowopensavecalendar(false);
+                        // 自分のメッセージ  削除も保存も出す
+                        if (c.email === myEmail) {
+                          setDeleteTarget({
+                            id: c.id,
+                            realId: c.realId || c.id,
+                            action: "both",
+                            content: c.content,
+                          });
+                          return;
+                        }
+                        // 他人のメッセージ 保存のみ
+                        setDeleteTarget({
+                          id: c.id,
+                          realId: c.realId || c.id,
+                          action: "calendar",
+                          content: c.content,
+                        });
+                      }}
+                    >
+                      {c.content}
+                    </div>
+                    {deleteTarget && deleteTarget.id === c.id && (
+                      <div className="content-sub"  >
+                        {!showopensavecalendar && (
+                          <>
+                            {(deleteTarget.action === "delete" || deleteTarget.action === "both") && (
+                              <button
+                                onClick={() => {
+                                  if (!window.confirm("本当に削除しますか？")) return;
+                                  socket.emit("delete-message", {
+                                    messageId: deleteTarget.realId || deleteTarget.id,
+                                    roomId,
+                                    type: "text",
+                                    email: myEmail,
+                                  });
                                   setDeleteTarget(null);
-                                }}>マイカレンダー</button>
-                                <button
-                                  onClick={() => {
-                                    if (!deleteTarget?.content) return;
-                                    if (!selectedDate) {
-                                      alert("日付を選択してください");
-                                      return;
-                                    }
-                                    if (!googleAccessToken || !googleRefreshToken) {
-                                      alert("Googleカレンダーに連携してください。")
-                                      return
-                                    }
-                                    setGoogleSaveTarget({
-                                      content: deleteTarget.content,
-                                      date: selectedDate,
-                                    });
-                                    setgoogletitle(true);
-                                    setshowopensavecalendar(false);
-                                    setDeleteTarget(null);
-                                  }}
-                                >
-                                  Googleカレンダー
-                                </button>
-                              </div>
+                                }}
+                              >
+                                削除
+                              </button>
                             )}
+                            {(deleteTarget.action === "calendar" || deleteTarget.action === "both") && (
+                              <button
+                                onClick={() => { setshowopensavecalendar(prev => !prev); }}
+                              >
+                                カレンダーに保存
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {showopensavecalendar && (
+                          <div className="save-options">
+                            <button onClick={async () => {
+                              if (!deleteTarget.content) return;
+                              const date = selectedDate;
+                              try {
+                                await fetch("/add-memo", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ date: date, memoList: [deleteTarget.content] }),
+                                });
+                                alert("マイカレンダーに保存しました");
+                              } catch (err) {
+                                console.error(err);
+                                alert("保存に失敗しました");
+                              }
+                              setshowopensavecalendar(false);
+                              setDeleteTarget(null);
+                            }}>マイカレンダー</button>
+                            <button
+                              onClick={() => {
+                                if (!deleteTarget?.content) return;
+                                if (!selectedDate) {
+                                  alert("日付を選択してください");
+                                  return;
+                                }
+                                if (!googleAccessToken || !googleRefreshToken) {
+                                  alert("Googleカレンダーに連携してください。")
+                                  return
+                                }
+                                setGoogleSaveTarget({
+                                  content: deleteTarget.content,
+                                  date: selectedDate,
+                                });
+                                setgoogletitle(true);
+                                setshowopensavecalendar(false);
+                                setDeleteTarget(null);
+                              }}
+                            >
+                              Googleカレンダー
+                            </button>
                           </div>
                         )}
                       </div>
-
                     )}
 
-                    {/* 画像 */}
-                    {hasImage && (
-                      <img
-                        src={c.imageUrl}
-                        alt="投稿画像"
-                        className="chat-image"
-                        onClick={() => setscreenImage(c.imageUrl)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          if (c.email === myEmail && !c.deleted) {
-                            setDeleteTarget({
-                              id: c.id,
-                              action: "delete",
-                            });
-                            return;
-                          }
-                        }}
-                      />
-                    )}
-                  </>
-                )}
+                    <div className="reactions-area">
+                      {(() => {
+                        const filtertextreactions = (c.reactions || []).filter(r => r.type === "text");
+                        const u = Object.entries(gropReactions(filtertextreactions))
+                          .map(([emoji, data]) => ({ emoji, users: data.users, emails: data.emails }));
+                        const visibleReactions = u.slice(-5);
+                        const hiddenCount = Math.max(0, u.length - visibleReactions.length);
 
-                {!isDeleted && (
-                  <div className="reactions-area">
-                    {(() => {
-                      const u = Object.entries(gropReactions(c.reactions || []))
-                        .map(([emoji, data]) => ({ emoji, users: data.users, emails: data.emails }));
-                      const visibleReactions = u.slice(-5);
-                      const hiddenCount = Math.max(0, u.length - visibleReactions.length);
-
-                      return (
-                        <>
-                          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                            <button
-                              key={`picker-add-${c.id}`}
-                              className="reaction-add"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setreactionmessageid(c.id);
-                                setviewpicker(true);
-                              }}
-                              title="リアクションを追加"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#999999"><path d="M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400h-66q-22 37-58.5 58.5T480-320q-43 0-79.5-21.5T342-400h-66q25 63 80.5 101.5T480-260Zm0 180q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z" /></svg>
-                            </button>
-                            {visibleReactions.map((item, idx) => {
-                              const reacted = (item.emails || []).includes(myEmail);
-                              return (
-                                <button
-                                  key={`${item.emoji}-${idx}`}
-                                  className={`reaction-btn ${reacted ? "reacted" : ""}`}
-                                  onClick={() => saveReaction(c.id, item.emoji)}
-                                  title={(item.users || []).join(", ")}
-                                >
-                                  <span className="emoji">{item.emoji}</span>
-                                  <span className="count">{(item.users || []).length}</span>
-                                </button>
-                              );
-                            })}
-
-
-                            {hiddenCount > 0 && (
+                        return (
+                          <>
+                            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                               <button
-                                key={`more-${c.id}`}
-                                className="reaction-more"
+                                key={`picker-add-${c.id}`}
+                                className="reaction-add"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setShowAllReactions({ messageId: c.id, reactions: u });
+                                  setreactionmessageid({ messageId: c.id, type: "text" });
+                                  setviewpicker(true);
                                 }}
-                                style={{
-                                  width: "10px",
-                                  height: "10px",
-                                }}
+                                title="リアクション"
                               >
-                                …
+                                <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#999999"><path d="M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400h-66q-22 37-58.5 58.5T480-320q-43 0-79.5-21.5T342-400h-66q25 63 80.5 101.5T480-260Zm0 180q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z" /></svg>
                               </button>
-                            )}
-                          </div>
+                              {visibleReactions.map((item, idx) => {
+                                const reacted = (item.emails || []).includes(myEmail);
+                                return (
+                                  <button
+                                    key={`${item.emoji}-${idx}`}
+                                    className={`reaction-btn ${reacted ? "reacted" : ""}`}
+                                    onClick={() => saveReaction(c.realId || c.id, item.emoji, "text")}
+                                    title={(item.users || []).join(", ")}
+                                  >
+                                    <span className="emoji">{item.emoji}</span>
+                                    <span className="count">{(item.users || []).length}</span>
+                                  </button>
+                                );
+                              })}
 
-                          {/* 全リアクション表示*/}
-                          {showAllReactions?.messageId === c.id && (
-                            createPortal(
-                              <div
-                                className="reaction-modal-overlay"
-                                onClick={() => setShowAllReactions(null)}
-                                style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 9998 }}
-                              >
-                                <div
-                                  className="reaction-modal"
-                                  onClick={(e) => e.stopPropagation()}
+
+                              {hiddenCount > 0 && (
+                                <button
+                                  key={`more-${c.id}`}
+                                  className="reaction-more"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowAllReactions({ messageId: c.id, type: "text", reactions: u });
+                                  }}
                                   style={{
-                                    position: "fixed",
-                                    top: "50%",
-                                    left: "50%",
-                                    transform: "translate(-50%, -50%)",
-                                    background: "#fff",
-                                    padding: "16px",
-                                    borderRadius: "8px",
-                                    zIndex: 9999,
-                                    maxWidth: "90%",
-                                    maxHeight: "80%",
-                                    overflow: "auto",
+                                    width: "10px",
+                                    height: "10px",
                                   }}
                                 >
-                                  <h4 style={{ marginTop: 0 }}>リアクション</h4>
-                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                                    {u.map((item, idx) => {
-                                      const reacted = (item.users || []).includes(myEmail);
-                                      return (
-                                        <button
-                                          key={`${item.emoji}-modal-${idx}`}
-                                          className={`reaction-btn ${reacted ? "reacted" : ""}`}
-                                          onClick={() => saveReaction(c.id, item.emoji)}
-                                          title={(item.users || []).join(", ")}
-                                        >
-                                          <span className="emoji">{item.emoji}</span>
-                                          <span className="count">{(item.users || []).length}</span>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              </div>,
-                              document.body)
-                          )}
+                                  …
+                                </button>
+                              )}
+                            </div>
 
-                          {viewpicker && reactionmessageid === c.id && (
-                            createPortal(
-                              <>
+                            {/* 全リアクション表示*/}
+                            {showAllReactions?.messageId === c.id && showAllReactions?.type === "text" && (
+                              createPortal(
                                 <div
-                                  className="emoji-overlay"
-                                  onMouseDown={() => setviewpicker(false)}
-                                  style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.3)" }}
-                                />
-                                <div
-                                  ref={pickerRef}
-                                  className="picker-wrapper-fixed"
-                                  style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999 }}
+                                  className="reaction-modal-overlay"
+                                  onClick={() => setShowAllReactions(null)}
+                                  style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 9998 }}
                                 >
-                                  <Picker
-                                    data={data}
-                                    onEmojiSelect={(emoji) => {
-                                      saveReaction(c.id, emoji.native);
-                                      setviewpicker(false);
+                                  <div
+                                    className="reaction-modal"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: "fixed",
+                                      top: "50%",
+                                      left: "50%",
+                                      transform: "translate(-50%, -50%)",
+                                      background: "#fff",
+                                      padding: "16px",
+                                      borderRadius: "8px",
+                                      zIndex: 9999,
+                                      maxWidth: "90%",
+                                      maxHeight: "80%",
+                                      overflow: "auto",
                                     }}
+                                  >
+                                    <h4 style={{ marginTop: 0 }}>リアクション</h4>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                      {u.map((item, idx) => {
+                                        const reacted = (item.users || []).includes(myEmail);
+                                        return (
+                                          <button
+                                            key={`${item.emoji}-modal-${idx}`}
+                                            className={`reaction-btn ${reacted ? "reacted" : ""}`}
+                                            onClick={() => saveReaction(c.realId || c.id, item.emoji, "text")}
+                                            title={(item.users || []).join(", ")}
+                                          >
+                                            <span className="emoji">{item.emoji}</span>
+                                            <span className="count">{(item.users || []).length}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>,
+                                document.body)
+                            )}
+
+                            {viewpicker && reactionmessageid?.messageId === c.id && reactionmessageid?.type === "text" && (
+                              createPortal(
+                                <>
+                                  <div
+                                    className="emoji-overlay"
+                                    onMouseDown={() => setviewpicker(false)}
+                                    style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.3)" }}
                                   />
-                                </div>
-                              </>,
-                              document.body)
-                          )}
-                        </>
-                      );
-                    })()}
+                                  <div
+                                    ref={pickerRef}
+                                    className="picker-wrapper-fixed"
+                                    style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999 }}
+                                  >
+                                    <Picker
+                                      data={data}
+                                      onEmojiSelect={(emoji) => {
+                                        saveReaction(c.realId || c.id, emoji.native, "text");
+                                        setviewpicker(false);
+                                      }}
+                                    />
+                                  </div>
+                                </>,
+                                document.body)
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
+
+
                 )}
+                {hasImage && !imagedelete && (
+                  <p className="user">{c.user.username}</p>
+                )}
+                {/* 画像 */}
+                {imagedelete && (<div className="deleted-message">{c.user.username}さんが画像を削除しました。</div>)}
+                {hasImage && (
+                  <>
+                    <img
+                      src={c.imageUrl}
+                      alt="投稿画像"
+                      className="chat-image"
+                      onClick={() => setscreenImage(c.imageUrl)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (c.email === myEmail && !c.deleted) {
+                          setImageDeleteTarget({
+                            id: c.id,
+                            action: "delete",
+                            realId: c.realId || c.id,
+                          });
+                          return;
+                        }
+                      }}
+                    />
+                    {imageDeleteTarget && imageDeleteTarget.id === c.id && (
+                      <div className="image-menu">
+                        <button
+                          onClick={() => {
+                            if (!window.confirm("この画像を削除しますか？")) return;
+                            socket.emit("delete-message", { messageId: imageDeleteTarget.realId || imageDeleteTarget.id, roomId, type: "image", email: myEmail });
+                            setImageDeleteTarget(null);
+                          }}
+                        >
+                          画像を削除
+                        </button>
+                      </div>
+                    )}
+                    <div className="reactions-area">
+                      {(() => {
+                        const filterimagereactions = (c.reactions || []).filter(r => r.type === "image");
+                        const u = Object.entries(gropReactions(filterimagereactions))
+                          .map(([emoji, data]) => ({ emoji, users: data.users, emails: data.emails }));
+                        const visibleReactions = u.slice(-5);
+                        const hiddenCount = Math.max(0, u.length - visibleReactions.length);
+
+                        return (
+                          <>
+                            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                              <button
+                                key={`picker-add-${c.id}`}
+                                className="reaction-add"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setreactionmessageid({ messageId: c.id, type: "image" });
+                                  setviewpicker(true);
+                                }}
+                                title="リアクション"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#999999"><path d="M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400h-66q-22 37-58.5 58.5T480-320q-43 0-79.5-21.5T342-400h-66q25 63 80.5 101.5T480-260Zm0 180q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z" /></svg>
+                              </button>
+                              {visibleReactions.map((item, idx) => {
+                                const reacted = (item.emails || []).includes(myEmail);
+                                return (
+                                  <button
+                                    key={`${item.emoji}-${idx}`}
+                                    className={`reaction-btn ${reacted ? "reacted" : ""}`}
+                                    onClick={() => saveReaction(c.realId || c.id, item.emoji, "image")}
+                                    title={(item.users || []).join(", ")}
+                                  >
+                                    <span className="emoji">{item.emoji}</span>
+                                    <span className="count">{(item.users || []).length}</span>
+                                  </button>
+                                );
+                              })}
 
 
+                              {hiddenCount > 0 && (
+                                <button
+                                  key={`more-${c.id}`}
+                                  className="reaction-more"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowAllReactions({ messageId: c.id, type: "image", reactions: u });
+                                  }}
+                                  style={{
+                                    width: "10px",
+                                    height: "10px",
+                                  }}
+                                >
+                                  …
+                                </button>
+                              )}
+                            </div>
 
+                            {/* 全リアクション表示*/}
+                            {showAllReactions?.messageId === c.id && showAllReactions?.type === "image" && (
+                              createPortal(
+                                <div
+                                  className="reaction-modal-overlay"
+                                  onClick={() => setShowAllReactions(null)}
+                                  style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 9998 }}
+                                >
+                                  <div
+                                    className="reaction-modal"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: "fixed",
+                                      top: "50%",
+                                      left: "50%",
+                                      transform: "translate(-50%, -50%)",
+                                      background: "#fff",
+                                      padding: "16px",
+                                      borderRadius: "8px",
+                                      zIndex: 9999,
+                                      maxWidth: "90%",
+                                      maxHeight: "80%",
+                                      overflow: "auto",
+                                    }}
+                                  >
+                                    <h4 style={{ marginTop: 0 }}>リアクション</h4>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                      {u.map((item, idx) => {
+                                        const reacted = (item.users || []).includes(myEmail);
+                                        return (
+                                          <button
+                                            key={`${item.emoji}-modal-${idx}`}
+                                            className={`reaction-btn ${reacted ? "reacted" : ""}`}
+                                            onClick={() => saveReaction(c.realId || c.id, item.emoji, "image")}
+                                            title={(item.users || []).join(", ")}
+                                          >
+                                            <span className="emoji">{item.emoji}</span>
+                                            <span className="count">{(item.users || []).length}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>,
+                                document.body)
+                            )}
+
+                            {viewpicker && reactionmessageid?.messageId === c.id && reactionmessageid?.type === "image" && (
+                              createPortal(
+                                <>
+                                  <div
+                                    className="emoji-overlay"
+                                    onMouseDown={() => setviewpicker(false)}
+                                    style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.3)" }}
+                                  />
+                                  <div
+                                    ref={pickerRef}
+                                    className="picker-wrapper-fixed"
+                                    style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999 }}
+                                  >
+                                    <Picker
+                                      data={data}
+                                      onEmojiSelect={(emoji) => {
+                                        saveReaction(c.realId || c.id, emoji.native, "image");
+                                        setviewpicker(false);
+                                      }}
+                                    />
+                                  </div>
+                                </>,
+                                document.body)
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </>
+
+                )}
 
               </div>
             );
