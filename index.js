@@ -505,9 +505,9 @@ async function resolveInviteContext(req, res) {
 function getPendingInviteToken(req) {
   return req.session.pendingInvite?.token || null;
 }
-app.get('/',(req,res)=>{
-  res.redirect('/login');
-})
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 app.get('/newuser',(req,res)=>{
   res.render('newuser')
 });

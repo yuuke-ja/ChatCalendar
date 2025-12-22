@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="google-site-verification" content="G92QKTN4bE5e7AN8l84u_sWn3ubmPZptB7Itp3ZcRno" />
+  <title>ChatCalendar | チームで予定を共有するチャットカレンダー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --accent: #10c7b3;
+      --bg: #f7f9fc;
+      --text: #1f2937;
+      --muted: #4b5563;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 24px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    nav a {
+      margin-left: 16px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+    .hero h1 {
+      font-size: 32px;
+      margin: 0 0 12px;
+    }
+    .hero p {
+      margin: 8px 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #e7fffb;
+      color: #0f9e8f;
+      font-weight: 600;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+      padding: 20px;
+    }
+    .card h2 { margin: 0 0 8px; font-size: 18px; }
+    .card ul { padding-left: 18px; margin: 8px 0; color: var(--muted); }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 14px;
+    }
+    footer {
+      border-top: 1px solid #e5e7eb;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    @media (max-width: 840px) {
+      .hero { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">ChatCalendar</a>
+    <nav>
+      <a href="/privacy">プライバシーポリシー</a>
+      <a href="/terms">利用規約</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="badge">チーム向けチャット × カレンダー</div>
+      <h1>ChatCalendar で会話と予定をひとまとめ</h1>
+      <p>チャットに書いた内容をそのまま日付にひも付け、Google カレンダーとも連携して予定を保存できるシンプルなツールです。画像付きの投稿や重要マーク、リアクションなど、日々のやりとりをカレンダーに整理できます。</p>
+      <p>ログイン不要で本ページは閲覧できますが、利用にはアカウントが必要です。</p>
+    </div>
+    <div class="card">
+      <h2>主な機能</h2>
+      <ul>
+        <li>日付ごとのチャット投稿（テキスト・画像・重要フラグ）</li>
+        <li>Google カレンダーへの予定保存</li>
+        <li>リアクション・絵文字によるコミュニケーション</li>
+        <li>メッセージ・画像の削除と管理</li>
+      </ul>
+      <a class="cta" href="/login">ログインして始める</a>
+    </div>
+  </section>
+
+  <footer>
+    <span>© ChatCalendar</span>
+    <a href="/privacy">プライバシーポリシー</a>|
+    <a href="/terms">利用規約</a>
+  </footer>
+</body>
+</html>
