@@ -476,11 +476,8 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
             if (isDeleted) {
               userclass = "deletechat"; // 削除済み
             } else if (hasContent || hasImage) {
-              if (c.important) {
-                userclass = "importantuser";
-              } else {
-                userclass = c.email === myEmail ? "myuser" : "othersuser";
-              }
+              const baseClass = c.email === myEmail ? "myuser" : "othersuser";
+              userclass = c.important ? `${baseClass} importantuser` : baseClass;
             }
 
 

@@ -192,7 +192,7 @@ passport.use('google', new GoogleStrategy({
 ));
 app.get('/auth/google', (req, res, next) => {
   const options = {
-    scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar'],
+    scope: ['email', 'profile'],
     accessType: 'offline',
     prompt: 'consent',
   };
@@ -217,7 +217,7 @@ app.get('/auth/google/link', logincheck, (req, res, next) => {
   const state = 'link:' + encodeURIComponent(currentEmail);
 
   passport.authenticate('google', {
-    scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar'],
+    scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar.events'],
     accessType: 'offline',
     prompt: 'consent',
     state,

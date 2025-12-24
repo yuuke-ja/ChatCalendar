@@ -1,137 +1,862 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="google-site-verification" content="G92QKTN4bE5e7AN8l84u_sWn3ubmPZptB7Itp3ZcRno" />
-  <title>ChatCalendar | チームで予定を共有するチャットカレンダー</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root {
-      --accent: #10c7b3;
-      --bg: #f7f9fc;
-      --text: #1f2937;
-      --muted: #4b5563;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-    header {
-      padding: 24px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-    .logo {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--accent);
-      text-decoration: none;
-    }
-    nav a {
-      margin-left: 16px;
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 14px;
-    }
-    .hero {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 40px 20px 60px;
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 32px;
-      align-items: center;
-    }
-    .hero h1 {
-      font-size: 32px;
-      margin: 0 0 12px;
-    }
-    .hero p {
-      margin: 8px 0;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-    .badge {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: #e7fffb;
-      color: #0f9e8f;
-      font-weight: 600;
-      font-size: 12px;
-      margin-bottom: 12px;
-    }
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.06);
-      padding: 20px;
-    }
-    .card h2 { margin: 0 0 8px; font-size: 18px; }
-    .card ul { padding-left: 18px; margin: 8px 0; color: var(--muted); }
-    .cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 16px;
-      background: var(--accent);
-      color: #fff;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 600;
-      margin-top: 14px;
-    }
-    footer {
-      border-top: 1px solid #e5e7eb;
-      padding: 20px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
-    @media (max-width: 840px) {
-      .hero { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatCalendar | 日付の中で、話そう。</title>
+    <!-- Google Fonts: Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- Reset & Base --- */
+        :root {
+            /* Brand Colors */
+            --brand-primary: rgb(23, 242, 198);
+            --brand-hover: rgb(18, 200, 160);
+            
+            /* Text Colors */
+            --text-dark: #23272a;
+            --text-normal: #2c2f33;
+            --text-white: #ffffff;
+            
+            /* Background Colors */
+            --bg-white: #ffffff;
+            --bg-off-white: #f6f6f6;
+            --bg-dark: #23272a;
+            
+            /* Layout */
+            --container-width: 1100px; 
+            --header-height: 80px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            color: var(--text-dark);
+            background-color: var(--bg-white);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            padding-top: 0; 
+        }
+
+        h1, h2, h3, h4 {
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        p {
+            font-size: 1.05rem;
+            color: var(--text-normal);
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* --- Components --- */
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 32px;
+            border-radius: 28px;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-white {
+            background-color: #fff;
+            color: var(--text-dark);
+        }
+        .btn-white:hover {
+            color: var(--brand-primary);
+        }
+
+        .btn-dark {
+            background-color: var(--bg-dark);
+            color: #fff;
+        }
+        .btn-dark:hover {
+            background-color: #36393f;
+        }
+
+        .btn-brand {
+            background-color: var(--brand-primary);
+            color: var(--text-dark);
+        }
+
+        /* --- Fixed Header --- */
+        .navbar {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background: rgba(23, 242, 198, 0.85); 
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .logo {
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: #fff;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        .nav-action .btn-login {
+            background-color: #fff;
+            color: var(--text-dark);
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .nav-action .btn-login:hover {
+            color: var(--brand-primary);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+
+        /* --- Hero Section & Animation --- */
+        .hero {
+            /* ベースカラーと少し変化をつけたグラデーション */
+            background: linear-gradient(180deg, var(--brand-primary) 0%, rgb(18, 225, 185) 100%);
+            min-height: clamp(720px, 100vh, 900px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: var(--header-height);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 下部を白にフェードアウトさせるグラデーションレイヤー */
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: clamp(120px, 18vh, 200px);
+            background: linear-gradient(to bottom, transparent, #ffffff);
+            z-index: 2; /* アニメーション(1)より上、コンテンツ(10)より下 */
+            pointer-events: none;
+        }
+
+        .hero-animation-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .clay-object {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            color: rgba(255,255,255,0.9);
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+            box-shadow: 
+                inset 2px 2px 6px rgba(255, 255, 255, 0.7),
+                inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+                8px 8px 16px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            animation: bubbleUp linear infinite;
+        }
+
+        @keyframes bubbleUp {
+            0% { transform: translateY(100vh) scale(0.5) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% { transform: translateY(-20vh) scale(1.1) rotate(20deg); opacity: 0; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #fff;
+            padding: 0 20px;
+        }
+
+        .hero-title {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .hero-desc {
+            font-size: clamp(1rem, 1.5vw, 1.15rem);
+            margin-bottom: 40px;
+            line-height: 1.8;
+            font-weight: 500;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* --- Responsive Tweaks (Hero) --- */
+        @media (max-width: 1400px) {
+            .hero { min-height: 720px; }
+            .hero-title { font-size: clamp(2.4rem, 3.6vw, 3.2rem); }
+            .hero-desc { font-size: 1.05rem; }
+            .clay-object { font-size: 1.8rem; }
+        }
+        @media (max-width: 1200px) {
+            .hero { min-height: 680px; }
+            .hero-title { font-size: clamp(2.2rem, 3.4vw, 3rem); }
+            .hero-desc { font-size: 1rem; }
+            .hero-content { max-width: 90%; }
+            .clay-object { font-size: 1.6rem; }
+        }
+        @media (max-width: 900px) {
+            .hero {
+                min-height: 620px;
+                padding-top: calc(var(--header-height) + 16px);
+            }
+            .hero-title { font-size: clamp(2rem, 4vw, 2.6rem); }
+            .hero-desc { font-size: 0.98rem; }
+            .hero-buttons { gap: 16px; }
+        }
+        @media (max-width: 600px) {
+            .hero { min-height: 560px; }
+            .hero-title { font-size: clamp(1.7rem, 7vw, 2.1rem); }
+            .hero-desc { font-size: 0.92rem; }
+            .hero-buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .clay-object { font-size: 1.4rem; }
+        }
+
+        /* --- Feature Sections --- */
+        .feature-section {
+            padding: 100px 0;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        
+        .feature-section:nth-child(even) {
+            background-color: var(--bg-off-white);
+        }
+
+        .feature-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .feature-section.reverse .feature-container {
+            grid-template-columns: 1fr 1fr;
+        }
+        .feature-section.reverse .feature-content {
+            order: 1;
+        }
+        .feature-section.reverse .feature-visual {
+            order: 2;
+        }
+
+        .feature-title {
+            font-size: clamp(2rem, 3vw, 2.5rem);
+            margin-bottom: 24px;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+
+        .feature-text {
+            font-size: 1.05rem;
+            color: var(--text-normal);
+            line-height: 1.8;
+        }
+
+        /* Visual Mocks - Common */
+        .feature-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mockup-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .feature-image {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        }
+        .feature-image--media {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            object-fit: cover;
+        }
+        
+        /* 1. Chat Flow to Calendar Mock */
+        .chat-flow-mock {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .mock-date-header {
+            font-weight: 800;
+            color: var(--brand-primary);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .mock-msg {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            position: relative;
+        }
+        .mock-msg.important {
+            background: rgba(23, 242, 198, 0.15);
+            border-left: 4px solid var(--brand-primary);
+        }
+        .pin-icon {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #fff;
+            border-radius: 50%;
+            padding: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            color: #ff9f43;
+            font-size: 0.8rem;
+        }
+
+        /* 2. Google Calendar Sync Mock */
+        .sync-mock {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 30px 0;
+        }
+        .app-icon-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .icon-cc { background: var(--brand-primary); color: #fff; }
+        .icon-google { background: #fff; color: #4285F4; border: 1px solid #eee; }
+        .sync-arrow {
+            color: #ccc;
+            font-size: 1.5rem;
+            animation: pulseArrow 2s infinite;
+        }
+        @keyframes pulseArrow {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* 3. Image & Reaction Mock */
+        .media-mock .mock-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .mock-img-placeholder {
+            width: 100%;
+            height: 120px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 2rem;
+        }
+        .reaction-bar {
+            display: flex;
+            gap: 5px;
+        }
+        .reaction-pill {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 4. Team Ops Mock */
+        .team-figure {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            object-fit: cover;
+        }
+
+        /* 5. Use Case List Style (New) */
+        .use-case-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .use-case-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .use-case-item:last-child {
+            border-bottom: none;
+        }
+        .use-case-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(23, 242, 198, 0.2);
+            color: var(--brand-hover);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .use-case-text {
+            font-weight: 700;
+            color: var(--text-normal);
+            font-size: 1rem;
+        }
+
+        /* --- Big CTA --- */
+        .big-cta {
+            background-color: var(--bg-off-white);
+            padding: 100px 0;
+            text-align: center;
+        }
+        .big-cta h2 {
+            font-size: clamp(2rem, 3vw, 2.8rem);
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            background-color: var(--bg-dark);
+            color: #fff;
+            padding: 60px 0 40px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 40px;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #4a4d53;
+            padding-bottom: 40px;
+        }
+
+        .footer-brand h3 {
+            font-size: 1.8rem;
+            color: var(--brand-primary);
+            margin-bottom: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: flex-end;
+            gap: 60px;
+            text-align: left;
+        }
+
+        .footer-col h4 {
+            color: var(--brand-primary);
+            font-size: 1rem;
+            margin-bottom: 16px;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col li {
+            margin-bottom: 12px;
+        }
+
+        .footer-col a {
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .footer-col a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- Responsive (Layout & Typography) --- */
+        @media (min-width: 1600px) {
+            :root { --container-width: 1280px; --header-height: 88px; }
+            .hero { min-height: 860px; }
+            .hero-title { font-size: clamp(3.2rem, 3.6vw, 4rem); }
+            .hero-desc { font-size: 1.2rem; }
+            .feature-section { padding: 120px 0; }
+            .feature-container { gap: 70px; }
+            .feature-title { font-size: clamp(2.4rem, 2.6vw, 3rem); }
+            .feature-text { font-size: 1.15rem; }
+            .mockup-card { max-width: 520px; }
+            .btn { padding: 18px 36px; font-size: 1.05rem; }
+        }
+        @media (max-width: 1400px) {
+            :root { --container-width: 1040px; }
+            .feature-section { padding: 90px 0; }
+            .feature-container { gap: 50px; }
+            .mockup-card { max-width: 400px; }
+            .feature-title { font-size: clamp(1.9rem, 3vw, 2.3rem); }
+            .feature-text { font-size: 1.02rem; }
+        }
+        @media (max-width: 1200px) {
+            :root { --container-width: 960px; --header-height: 76px; }
+            .feature-section { padding: 84px 0; }
+            .feature-container { gap: 44px; }
+            .mockup-card { max-width: 380px; }
+            .feature-title { font-size: clamp(1.8rem, 3vw, 2.1rem); }
+            .feature-text { font-size: 1rem; }
+        }
+        @media (max-width: 900px) {
+            .feature-container,
+            .feature-section.reverse .feature-container {
+                grid-template-columns: 1fr;
+                gap: 36px;
+                text-align: center;
+            }
+            .feature-section.reverse .feature-content,
+            .feature-section.reverse .feature-visual {
+                order: initial;
+            }
+            .feature-visual { margin-top: 16px; }
+            .feature-section { padding: 72px 0; }
+            .feature-title { font-size: 1.8rem; }
+            .feature-text { font-size: 0.98rem; }
+            .btn { padding: 14px 26px; font-size: 0.95rem; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .footer-links { justify-content: flex-start; flex-direction: column; gap: 30px; }
+            .nav-links { display: none; }
+        }
+        @media (max-width: 600px) {
+            :root { --header-height: 72px; }
+            .container { padding: 0 18px; }
+            .feature-section { padding: 60px 0; }
+            .feature-title { font-size: 1.6rem; }
+            .feature-text { font-size: 0.95rem; }
+            .btn { padding: 12px 22px; font-size: 0.9rem; }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <a class="logo" href="/">ChatCalendar</a>
-    <nav>
-      <a href="/privacy">プライバシーポリシー</a>
-      <a href="/terms">利用規約</a>
-    </nav>
-  </header>
 
-  <section class="hero">
-    <div>
-      <div class="badge">チーム向けチャット × カレンダー</div>
-      <h1>ChatCalendar で会話と予定をひとまとめ</h1>
-      <p>チャットに書いた内容をそのまま日付にひも付け、Google カレンダーとも連携して予定を保存できるシンプルなツールです。画像付きの投稿や重要マーク、リアクションなど、日々のやりとりをカレンダーに整理できます。</p>
-      <p>ログイン不要で本ページは閲覧できますが、利用にはアカウントが必要です。</p>
-    </div>
-    <div class="card">
-      <h2>主な機能</h2>
-      <ul>
-        <li>日付ごとのチャット投稿（テキスト・画像・重要フラグ）</li>
-        <li>Google カレンダーへの予定保存</li>
-        <li>リアクション・絵文字によるコミュニケーション</li>
-        <li>メッセージ・画像の削除と管理</li>
-      </ul>
-      <a class="cta" href="/login">ログインして始める</a>
-    </div>
-  </section>
+    <!-- Header (Fixed) -->
+    <header class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <i class="fas fa-calendar-alt"></i> ChatCalendar
+            </a>
+            <nav class="nav-links">
+                <a href="/terms">利用規約</a>
+                <a href="/privacy">プライバシーポリシー</a>
+                <a href="/login">ログイン</a>
+            </nav>
+            <div class="nav-action">
+                <a href="/login" class="btn-login">ログイン</a>
+            </div>
+        </div>
+    </header>
 
-  <footer>
-    <span>© ChatCalendar</span>
-    <a href="/privacy">プライバシーポリシー</a>|
-    <a href="/terms">利用規約</a>
-  </footer>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-animation-layer">
+            <div class="clay-object" style="left: 10%; width: 80px; height: 60px; animation-duration: 7s; animation-delay: 0s;"><i class="fas fa-comment"></i></div>
+            <div class="clay-object" style="left: 25%; width: 100px; height: 80px; animation-duration: 9s; animation-delay: 2s;"><i class="fas fa-comment-dots"></i></div>
+            <div class="clay-object" style="left: 70%; width: 60px; height: 45px; animation-duration: 6s; animation-delay: 1s;"><i class="fas fa-comments"></i></div>
+            <div class="clay-object" style="left: 85%; width: 90px; height: 70px; animation-duration: 8s; animation-delay: 3s;"><i class="far fa-comment-alt"></i></div>
+            <div class="clay-object" style="left: 15%; width: 90px; height: 90px; animation-duration: 10s; animation-delay: 4s;"><i class="far fa-calendar-alt"></i></div>
+            <div class="clay-object" style="left: 60%; width: 110px; height: 110px; animation-duration: 11s; animation-delay: 1.5s;"><i class="fas fa-calendar-check"></i></div>
+            <div class="clay-object" style="left: 80%; width: 80px; height: 80px; animation-duration: 8.5s; animation-delay: 5s;"><i class="far fa-calendar-plus"></i></div>
+            <div class="clay-object" style="left: 40%; width: 70px; height: 70px; animation-duration: 7.5s; animation-delay: 2.5s;"><i class="fas fa-calendar-day"></i></div>
+        </div>
+
+        <div class="hero-content">
+            <h1 class="hero-title">日付の中で、話そう。</h1>
+            <!-- キャッチコピーを元に戻しました -->
+            <p class="hero-desc">
+                カレンダーのマス目が、そのままチャットルームに。<br>
+                予定調整も、思い出話も、すべてが「日付」の中に集まる。<br>
+                招待制の新しいコミュニケーション・プラットフォーム。
+            </p>
+            <div class="hero-buttons">
+                <a href="/newuser" class="btn btn-brand" style="padding: 18px 40px; font-size: 1.1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">今すぐ始める</a>
+                <a href="/login" class="btn btn-white">デモを見る</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature 1: チャットの流れをそのまま予定に -->
+    <section class="feature-section">
+        <div class="container feature-container">
+            <div class="feature-visual">
+                <div class="mockup-card" style="transform: rotate(-2deg); padding: 0; overflow: hidden;">
+                    <img class="feature-image" src="/images/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202025-12-24%2012.48.34.png" alt="チャットの流れをそのまま予定に">
+                </div>
+            </div>
+            <div class="feature-content">
+                <!-- 見出しを元に戻しました -->
+                <h2 class="feature-title">チャットの流れを<br>そのまま予定に。</h2>
+                <p class="feature-text">
+                    日付ごとにチャットルームが生成されるから、会話が自然と整理されます。<br>
+                    過去の決定事項も、カレンダーでその日を遡れば一目瞭然。タイムラインを延々とスクロールして探す必要はありません。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature 2: テキストも画像も一緒に残せる -->
+    <section class="feature-section reverse">
+        <div class="container feature-container">
+            <div class="feature-content">
+                <h2 class="feature-title">テキストも画像も、<br>一緒に残せる。</h2>
+                <p class="feature-text">
+                    イベントのチラシ画像、地図のスクリーンショット、思い出の集合写真。<br>
+                    その日の会話にそのまま添付できます。リアクション機能を使えば、メンバーの賛成・反対の意思表示もスピーディーに。
+                </p>
+            </div>
+            <div class="feature-visual">
+                <div class="mockup-card" style="transform: rotate(2deg); padding: 0; overflow: hidden;">
+                    <img class="feature-image--media" src="/images/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202025-12-24%2016.03.44.png" alt="テキストと画像の共有">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature 3: Googleカレンダー連携 -->
+    <section class="feature-section">
+        <div class="container feature-container">
+            <div class="feature-visual">
+                <div class="mockup-card" style="border:none; box-shadow:none; background:transparent;">
+                    <div class="sync-mock">
+                        <div class="app-icon-box icon-cc">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="sync-arrow">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="app-icon-box icon-google">
+                            <i class="fab fa-google"></i>
+                        </div>
+                    </div>
+                    <div style="text-align:center; margin-top:10px; font-weight:700; color:var(--text-normal);">
+                        <i class="fas fa-check-circle" style="color:var(--brand-primary); margin-right:5px;"></i> イベント連携
+                    </div>
+                </div>
+            </div>
+            <div class="feature-content">
+                <h2 class="feature-title">いつものカレンダーと<br>つながる。</h2>
+                <p class="feature-text">
+                    Googleアカウントと連携すれば、ChatCalendarで決まった予定をGoogleカレンダーにイベントとして追加可能。<br>
+                    プライベートの予定とチームの活動を一元管理し、スムーズなスケジュール調整を実現します。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature 4: 権限はリーダーが管理 -->
+    <section class="feature-section reverse">
+        <div class="container feature-container">
+            <div class="feature-content">
+                <h2 class="feature-title">チームの権限は、<br>リーダーが管理。</h2>
+                <p class="feature-text">
+                    サークルやプロジェクトの運用には、適切な管理機能が必要です。<br>
+                    メンバーの招待や設定変更はリーダー権限に集約。役割が明確なので、大人数のコミュニティでも安心して運用できます。
+                </p>
+            </div>
+            <div class="feature-visual">
+                <div class="mockup-card" style="padding: 0; overflow: hidden;">
+                    <img class="team-figure" src="/images/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202025-12-24%2012.52.12.png" alt="権限管理の画面">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature 5: こんなときに（Use Cases） -->
+    <section class="feature-section">
+        <div class="container feature-container">
+            <div class="feature-visual">
+                <div class="mockup-card" style="transform: rotate(-1deg);">
+                    <h3 style="margin-bottom:20px; font-size:1.2rem; text-align:center;">例えば、こんなシーンで</h3>
+                    <div class="use-case-list">
+                        <div class="use-case-item">
+                            <div class="use-case-icon"><i class="fas fa-users"></i></div>
+                            <div class="use-case-text">サークル・プロジェクトの<br>集合連絡やタスク共有</div>
+                        </div>
+                        <div class="use-case-item">
+                            <div class="use-case-icon"><i class="fas fa-home"></i></div>
+                            <div class="use-case-text">家族や友人との<br>イベント日程調整</div>
+                        </div>
+                        <div class="use-case-item">
+                            <div class="use-case-icon"><i class="fas fa-book-open"></i></div>
+                            <div class="use-case-text">勉強会・部活の<br>連絡網と資料共有</div>
+                        </div>
+                        <div class="use-case-item">
+                            <div class="use-case-icon"><i class="fas fa-camera-retro"></i></div>
+                            <div class="use-case-text">思い出や写真を<br>日付ごとに残したいとき</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-content">
+                <h2 class="feature-title">会話も予定も、<br>もっと自由に、確実に。</h2>
+                <p class="feature-text">
+                    チャットで盛り上がりながら、日付ごとの予定もしっかり管理したい。<br>
+                    そんな「コミュニケーション」と「スケジュール管理」の両方を大切にするチームのために、新しい居場所を作りました。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Big CTA -->
+    <section class="big-cta">
+        <div class="container">
+            <h2>さあ、日付の中で話そう。</h2>
+            <div style="margin-top: 40px;">
+                <a href="#" class="btn btn-brand" style="font-size: 1.3rem; padding: 20px 50px; border-radius: 50px;">
+                    今すぐ始める
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h3>ChatCalendar</h3>
+
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>ポリシー</h4>
+                        <ul>
+                            <li><a href="/terms">利用規約</a></li>
+                            <li><a href="/privacy">プライバシーポリシー</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <a href="/newuser" class="btn-brand btn" style="padding: 10px 20px; font-size: 0.9rem;">登録する</a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>

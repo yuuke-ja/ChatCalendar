@@ -340,7 +340,7 @@ td:last-child{ color:blue; }
   border: 1px solid rgb(23, 242, 198);
   padding: 9px 12px;
   display: inline-block;
-  max-width: 220px;
+  max-width: 320px;
   word-break: break-word;
   margin-right: 12px;
   white-space: pre-wrap;
@@ -365,7 +365,7 @@ td:last-child{ color:blue; }
   background-color: #eaeaea;
   padding: 9px 12px;
   display: inline-block;
-  max-width: 220px;
+  max-width: 320px;
   margin-left: 12px;
   word-break: break-word;
   margin-top: 8px;
@@ -385,54 +385,28 @@ td:last-child{ color:blue; }
   border-left: 0;
   border-width: 8px 10px 8px 0;
 }
-.othersuser .user{
+.othersuser .user,
+.importantuser.othersuser .user{
   font-size:13px;
   margin-bottom:-9px;
   margin-left:15px;
   color: hsl(210, 100%, 40%);
 }
 .importantuser {
-  position: relative; /* 絶対配置の基準 */
+  position: relative;
 }
-.importantuser .user {
-  width: 100%;
-  font-size: 13px;
-  margin-left: 16.5%;
-  margin-bottom: -8px;
-}
-
 .importantuser .content {
-  background: #fff4e0;            
-  border: 1px solid #ffa500;                      
-  padding: 12px 16px;
-  border-radius: 12px;
-  width: 60%;
-  margin: 10px auto;               
-  font-weight: bold;
-  white-space: pre-wrap; 
-  text-align: center; 
-  animation: pulse 1.5s ease-in-out infinite alternate;
+  background: #fff4e0;
+  border: 1px solid #ffa500;
+}
+.importantuser .content::after {
+  display: none;
 }
 .content.left-align  {
   text-align: left !important;
 }
 
 
-/* 軽いアニメで目立たせる（オプション） */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 10px rgba(255,165,0,0.2);
-  }
-  100% {
-    box-shadow: 0 0 20px rgba(255,165,0,0.6);
-  }
-}
-.importantuser .date {
-  font-size: 13px;
-  padding: 5px;
-  color: #00000090;
-  text-align: center;
-}
 
 .headerchat {
   background-color: rgba(120, 214, 195, 0.476);
@@ -951,9 +925,6 @@ button { position: relative; }
 .othersuser .reactions-area {
   margin-left: 10px;
 }
-.importantuser .reactions-area{
-  margin-left:16.5%;
-}
 .reaction-btn {
   display: inline-flex;
   align-items: center;
@@ -974,6 +945,9 @@ button { position: relative; }
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+.reaction-btn .count {
+  transform: translateY(1px);
 }
 .reaction-btn:hover {
   background: #e6e6e6;
@@ -2026,6 +2000,13 @@ content-deletechat{
 
 
 
+@media (max-width: 1200px) {
+  .myuser .content,
+  .othersuser .content {
+    max-width: 60%;
+  }
+}
+
 @media (max-width: 600px) {
   .home, .logout {
     position: static;
@@ -2048,6 +2029,10 @@ content-deletechat{
   }
   #chat {
     width: 100%;
+  }
+  .myuser .content,
+  .othersuser .content {
+    max-width: 85%;
   }
   #image-upload { order: 2; }
   #preview {
