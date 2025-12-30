@@ -1,0 +1,88 @@
+.roomdetails-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeInUserinfo 0.2s ease;
+}
+
+.roomdetails-modal {
+  background-color: #f9f9f9;
+  border-radius: 16px;
+  padding: 24px 32px;
+  width: 420px;
+  height: 600px;
+  max-height: 99%;
+  max-width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  overflow-y: auto;
+  position: relative;
+  animation: popIn 0.25s ease;
+}
+
+.roomdetails-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 8px;
+  margin-bottom: 40px;
+}
+
+.roomdetails-header h2 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+}
+
+.roomdetailsclose-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 20px;
+  color: #777;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.roomdetailsclose-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+.room-info p {
+  margin: 4px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.room-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.room-actions button {
+  width: 100%;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 10px 0;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.chengeauthority {
+  background-color: #ff4d4d;
+}
+
+.room-actions button:hover {
+  background-color: #f0f0f0;
+}

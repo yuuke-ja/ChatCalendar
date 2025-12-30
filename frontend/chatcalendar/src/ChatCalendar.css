@@ -1,0 +1,119 @@
+#chatcalendar {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  width: 58vw;
+  transition: none;
+}
+
+table {
+  margin: auto;
+  width: 100%;
+  table-layout: fixed;
+  border-spacing: 0;
+  border-collapse: collapse;
+  font-family: 'Libre Baskerville';
+  font-size: 1.5vw;
+}
+
+th {
+  padding: 8px 0;
+  font-weight: 600;
+}
+
+td {
+  position: relative;
+  aspect-ratio: 1 / 1;
+}
+
+td,
+th {
+  padding: 0;
+  text-align: center;
+  width: calc(100% / 7);
+  box-sizing: border-box;
+  position: relative;
+}
+
+td::before {
+  content: "";
+  display: block;
+  padding-top: 80%;
+  width: 100%;
+  pointer-events: none;
+}
+
+td > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  width: 70%;
+  border-radius: 6px;
+  transition: transform 0.15s ease;
+  box-sizing: border-box;
+  font-size: inherit;
+  background: transparent;
+  aspect-ratio: 1 / 1;
+}
+
+.irotuke > span {
+  background-color: rgb(23, 242, 198);
+  width: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+.kako > span {
+  color: #ccc !important;
+  width: 40%;
+  height: 40%;
+  font-size: 0.95em;
+  background: transparent;
+}
+
+td > span.today {
+  color: rgb(13, 176, 46) !important;
+}
+
+td:not(.irotuke):not(.kako):hover > span {
+  transform: scale(1.12);
+  background-color: #f6f204a2;
+  cursor: pointer;
+}
+
+section {
+  margin-bottom: 80px;
+}
+
+h1 {
+  text-align: center;
+  position: static;
+  font-size: 4vw;
+  font-family: 'Merriweather';
+}
+
+td:first-child {
+  color: red;
+}
+
+td:last-child {
+  color: blue;
+}
+
+.countbatch {
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  background-color: #ff6b6b !important;
+  border-radius: 50%;
+  color: white;
+  width: 20% !important;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6em;
+  z-index: 666;
+}

@@ -1340,7 +1340,7 @@ io.on('connection', async(socket) => {
         where: { id: chatroomId },
         data: { authority: val }  
       });
-      io.to(chatroomId).emit("authority-changed", { chatroomId, val });
+      socket.to(chatroomId).emit("authority-changed", { chatroomId, val });
     } catch (e) {
       console.error("make-subleader error:", e);
     }
@@ -1363,7 +1363,7 @@ io.on('connection', async(socket) => {
         data: { invitationauthority: val }
       });
 
-      io.to(chatroomId).emit("invitation-authority-changed", { chatroomId, val });
+      socket.to(chatroomId).emit("invitation-authority-changed", { chatroomId, val });
     } catch (e) {
       console.error("chenge-invitation-authority error:", e);
     }

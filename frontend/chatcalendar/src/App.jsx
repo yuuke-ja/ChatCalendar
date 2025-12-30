@@ -5,6 +5,10 @@ import ChatModal from "./ChatModal.jsx";
 import FriendModal from "./FriendModal.jsx";
 import NewChatModal from "./NewChatModal.jsx";
 import InviteModal from "./InviteModal.jsx";
+import MemberModal from "./MemberModal.jsx";
+import Sidebar from "./Sidebar.jsx";
+import RoomDetailsModal from "./RoomDetailsModal.jsx";
+import Header from "./Header.jsx";
 import "./App.css";
 
 export default function App() {
@@ -30,6 +34,8 @@ export default function App() {
   const [Roomdetails, setRoomdetails] = useState(false)
   const [viewdatelist, setviewdatelist] = useState(false)
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [listorcalendar, setlistorcalendar] = useState("calendar");
   const [calendarStartDate, setCalendarStartDate] = useState(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
@@ -130,39 +136,11 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  const Header = ({ chatroomName, calendarStartDate, onPrev, onNext }) => (
-    <header className="header">
-      <div className="calendar-controls">
-        <button id="prev" onClick={onPrev}>◀</button>
-        <span>
-          {calendarStartDate.getFullYear()}年{calendarStartDate.getMonth() + 1}月
-        </span>
-        <button id="next" onClick={onNext}>▶</button>
-        <button
-          id="today"
-          onClick={() => {
-            const today = new Date();
-            setCalendarStartDate(today);
-            localStorage.setItem("calendarStartDate", today.toISOString());
-          }}
-          style={{
-            marginLeft: "10px",
-            backgroundColor: "#33c595",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            padding: "4px 10px",
-            cursor: "pointer",
-          }}
-        >
-          今日
-        </button>
-      </div>
-      <button className="Userinformation" onClick={() => setUserinformationOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#666666"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" /></svg></button>
-      <button className="datelist-button" onClick={() => setviewdatelist(true)}><svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#666666"><path d="M438-226 296-368l58-58 84 84 168-168 58 58-226 226ZM200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z" /></svg></button>
-      <button className="checkuser" onClick={() => setFriendModalOpen(true)}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#666666"><path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Zm0-108q96-86 158-147.5t98-107q36-45.5 50-81t14-70.5q0-60-40-100t-100-40q-47 0-87 26.5T518-680h-76q-15-41-55-67.5T300-774q-60 0-100 40t-40 100q0 35 14 70.5t50 81q36 45.5 98 107T480-228Zm0-273Z" /></svg></button>
-    </header>
-  );
+  const handleTodayClick = () => {
+    const today = new Date();
+    setCalendarStartDate(today);
+    localStorage.setItem("calendarStartDate", today.toISOString());
+  };
   const selectChatroom = async (chatId) => {
     const seq = ++pendingRequestRef.current; // このリクエストが最新か判定するための番号
     // 即座に選択を反映させる
@@ -446,6 +424,26 @@ export default function App() {
       if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const handler = (e) => {
+      setIsMobile(e.matches);
+    };
+
+    // 初期値セット
+    setIsMobile(mediaQuery.matches);
+
+    // 変更を監視
+    mediaQuery.addEventListener("change", handler);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handler);
+    };
+  }, []);
+  const isMobileList = isMobile && listorcalendar === "list";
+  const isMobileCalendar = isMobile && listorcalendar === "calendar";
+
 
   // 閉じる処理
   const handleCloseModal = () => {
@@ -457,92 +455,36 @@ export default function App() {
   };
 
 
+
   return (
-    <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}`}>
-      <aside className="sidebar">
-        <div className="sidebar-section sidebar-top">
-          <div className="sidebar-section-header">
-            <h3 className="sidebar-heading">ルーム管理</h3>
-            <span className="sidebar-subtext">情報とマイカレンダー</span>
-          </div>
-          <div className="sidebar-action-group">
-            <button className="sidebar-action-button" onClick={() => setRoomdetails(true)}>ルーム詳細</button>
-            <button className="sidebar-action-button" onClick={() => setmembermodal(true)}>
-              参加人数: {participants.length}人
-            </button>
-            <button type="button" className="sidebar-action-button sidebar-action-link" onClick={() => window.location.href = "/privatecalendar"}>マイカレンダー</button>
-          </div>
-        </div>
-
-        <div className="sidebar-section sidebar-chatlist">
-          <div className="sidebar-section-header">
-            <h3 className="sidebar-heading">ルームリスト</h3>
-            <span className="sidebar-subtext">{chatList.length}件</span>
-          </div>
-          <div className="sidebar-chatlist-body">
-            {chatList.map(chat => {
-              const view = chat.id === chatroomId;
-              const counts = allcountbatch[chat.id] || {};
-              const roomcount = Object.values(counts).filter(c => c > 0).length;
-              return (
-                <button
-                  key={chat.id}
-                  className={`sidebar-chat-button${view ? " is-active" : ""}`}
-                  onClick={() => selectChatroom(chat.id)}
-                >
-                  <span className="sidebar-chat-name">{chat.chatid}</span>
-                  {roomcount > 0 && <span className="chatroombatch">{roomcount}</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="sidebar-section sidebar-bottom">
-          <button className="sidebar-primary-button" onClick={() => setNewChatModalOpen(true)}>
-            ルーム作成
-          </button>
-        </div>
-      </aside>
+    <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}${isMobileList ? " mobile-list" : ""}${isMobileCalendar ? " mobile-calendar" : ""}`}>
+      <Sidebar
+        chatList={chatList}
+        chatroomId={chatroomId}
+        participantsCount={participants.length}
+        allcountbatch={allcountbatch}
+        onOpenRoomDetails={() => setRoomdetails(true)}
+        onOpenMemberModal={() => setmembermodal(true)}
+        onGoPrivateCalendar={() => { window.location.href = "/privatecalendar"; }}
+        onSelectChatroom={(id) => { selectChatroom(id); setlistorcalendar("calendar"); }}
+        onOpenNewChatModal={() => setNewChatModalOpen(true)}
+      />
 
       {Roomdetails && (
-        <div className="roomdetails-overlay" onClick={() => setRoomdetails(false)}>
-          <div
-            className="roomdetails-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/*  モーダルヘッダー */}
-            <div className="roomdetails-header">
-              <h2>{chatroomName}</h2>
-              <button
-                className="roomdetailsclose-btn"
-                onClick={() => setRoomdetails(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="room-info">
-              <p><span className="label">参加者：</span>{participants.length}人</p>
-              <p><span className="label">⭐️権限：</span>{authorityOn ? "OFF" : "ON"}</p>
-              <p><span className="label">招待権限：</span>{invitationauthorityOn ? "OFF" : "ON"}</p>
-            </div>
-
-            <div className="room-actions">
-              <button onClick={() => { setRoomdetails(false); setTimeout(() => setmembermodal(true), 50); }}>参加者を見る</button>
-              {canSeeinvitationButton && (<button onClick={() => { setRoomdetails(false); setTimeout(() => setInviteModalOpen(true), 50); }}>招待</button>)}
-              {myrole === "leader" && (
-                <button onClick={chengeauthority}>
-                  ⭐️権限を{authorityOn ? "ONにする" : "OFFにする"}
-                </button>
-              )}
-              {myrole == "leader" && (
-                <button onClick={chengeinvitationauthority}>招待の権限を{invitationauthorityOn ? "ONにする" : "OFFにする"}</button>
-              )}
-              <button className="deletemyuser" onClick={deletemyuser}>退出する</button>
-            </div>
-          </div>
-        </div>
+        <RoomDetailsModal
+          chatroomName={chatroomName}
+          participantsCount={participants.length}
+          authorityOn={authorityOn}
+          invitationauthorityOn={invitationauthorityOn}
+          myrole={myrole}
+          canSeeInvitationButton={canSeeinvitationButton}
+          onClose={() => setRoomdetails(false)}
+          onOpenMemberModal={() => { setRoomdetails(false); setTimeout(() => setmembermodal(true), 50); }}
+          onOpenInviteModal={() => { setRoomdetails(false); setTimeout(() => setInviteModalOpen(true), 50); }}
+          onToggleAuthority={chengeauthority}
+          onToggleInvitationAuthority={chengeinvitationauthority}
+          onLeaveRoom={deletemyuser}
+        />
       )}
       {viewdatelist && (
         <div
@@ -667,7 +609,7 @@ export default function App() {
       }
       {friendModalOpen && (
         <FriendModal
-          socketRef={socketRef}
+          socket={socketRef.current}
           socketReady={socketReady}
           myEmail={myEmail}
           onClose={() => setFriendModalOpen(false)}
@@ -690,35 +632,15 @@ export default function App() {
         />
       )}
       {membermodal && (
-        <div className="member-overlay">
-          <div className="member">
-            <div className="member-header">
-              <h2>参加メンバー</h2>
-              <button className="member-close" onClick={() => setmembermodal(false)}>✕</button>
-            </div>
-            <ul className="member-list">
-              {participants.map((p, i) => (
-                <li key={i} className="member-item">
-                  <div className="member-info">
-                    <span className="member-name">{p.name}</span>
-                    <span className={`member-role${p.role}`}>
-                      {getRoleText(p.role)}
-                    </span>
-                  </div>
-
-                  {/* リーダーだけ操作ボタン表示 */}
-                  {myrole === "leader" && p.role !== "leader" && (
-                    <div className="member-actions">
-                      <button className="btn-subleader" onClick={() => makesubleader(p.email)}>{p.role === "member" ? "サブリーダー任命" : "サブリーダーから外す"}</button>
-                      <button className="btn-leader" onClick={() => changeleader(p.email)}>リーダーにする</button>
-                      <button className="btn-remove" onClick={() => deleteuser(p.email)}>削除</button>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <MemberModal
+          participants={participants}
+          myrole={myrole}
+          getRoleText={getRoleText}
+          onMakeSubleader={makesubleader}
+          onChangeLeader={changeleader}
+          onDeleteUser={deleteuser}
+          onClose={() => setmembermodal(false)}
+        />
       )}
 
 
@@ -726,10 +648,15 @@ export default function App() {
         <div className={`chatcalendar-page ${isClosing ? "closing-modal" : ""}`}>
 
           <Header
-            chatroomName={chatroomName}
+            isMobile={isMobile}
             calendarStartDate={calendarStartDate}
+            onOpenList={() => setlistorcalendar("list")}
             onPrev={() => moveCalendarBlock(-1)}
             onNext={() => moveCalendarBlock(1)}
+            onToday={handleTodayClick}
+            onOpenUserInfo={() => setUserinformationOpen(true)}
+            onOpenDateList={() => setviewdatelist(true)}
+            onOpenFriendModal={() => setFriendModalOpen(true)}
           />
 
           <ChatCalendar

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import "./FriendModal.css";
 
-export default function FriendModal({ socketRef, socketReady, myEmail, onClose }) {
+export default function FriendModal({ socket, socketReady, myEmail, onClose }) {
   const [text, setText] = useState("");
   const [friendList, setFriendList] = useState([]);
   const [message, setMessage] = useState("");
@@ -21,7 +22,6 @@ export default function FriendModal({ socketRef, socketReady, myEmail, onClose }
     fetchFavorites();
 
     // 🔄 ソケットイベント（リアルタイム追加）はそのまま維持
-    const socket = socketRef?.current;
     if (!socket || !myEmail) return;
 
     socket.on("favorite-added", (data) => {
@@ -55,13 +55,13 @@ export default function FriendModal({ socketRef, socketReady, myEmail, onClose }
 
     return () => {
       socket.off("favorite-added");
+      socket.off("favorite-rename");
     };
-  }, [socketRef, socketReady, myEmail]);
+  }, [socket, socketReady, myEmail]);
 
 
   const handleSave = () => {
     if (!text.trim()) return;
-    const socket = socketRef?.current;
     if (!socket) return;
     socket.emit("favorite-save", { targetEmail: text.trim(), myEmail });
   };

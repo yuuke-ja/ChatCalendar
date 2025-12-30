@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import "./InviteModal.css";
 
 export default function InviteModal({ onClose, participants = [], myEmail, myUsername, chatroomName, chatroomId }) {
   const [favorites, setFavorites] = useState([]);

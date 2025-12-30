@@ -1,0 +1,155 @@
+.friend-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.439);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.friend-modal {
+  width: 420px;
+  max-width: 90%;
+  height: 520px;
+  max-height: 85%;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px 24px 28px;
+  box-shadow: 0 24px 60px rgba(25, 38, 94, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.friend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.friend-header h2 {
+  font-size: 1.4rem;
+  color: #2f3567;
+  font-weight: 700;
+}
+
+.friend-close {
+  border: none;
+  background: #fff;
+  color: #2f3567;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.favorite-message {
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(70, 137, 255, 0.12);
+  border: 1px solid rgba(70, 137, 255, 0.18);
+  border-radius: 10px;
+  color: #2f3567;
+  font-size: 0.9rem;
+}
+
+.friend-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.friend-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cfd5f3;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.friend-input:focus {
+  outline: none;
+  border-color: #7981ff;
+  box-shadow: 0 0 0 4px rgba(121, 129, 255, 0.18);
+}
+
+.friend-add {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(120deg, #5d6bff, #7c8dff);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.friend-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(93, 107, 255, 0.25);
+}
+
+.friend-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(47,53,103,0.05), rgba(47,53,103,0.14), rgba(47,53,103,0.05));
+}
+
+.friend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
+}
+
+.friend-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.friend-list::-webkit-scrollbar-thumb {
+  background: rgba(47, 53, 103, 0.12);
+  border-radius: 999px;
+}
+
+.friend-empty {
+  color: #8d93b5;
+  font-size: 0.92rem;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.friend-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(205, 213, 243, 0.7);
+  box-shadow: 0 6px 16px rgba(59, 65, 109, 0.08);
+}
+
+.friend-name {
+  font-weight: 600;
+  color: #333a66;
+  font-size: 1rem;
+}
+
+.friend-email {
+  font-size: 0.86rem;
+  color: #8d93b5;
+}

@@ -1,0 +1,46 @@
+.newchatoverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.newchat {
+  position: relative;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 350px;
+  max-height: 600px;
+  min-height: 200px;
+  height: 50%;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.newchat h1 {
+  font-size: 16px;
+}
+
+.newchat input {
+  width: 100%;
+  height: 30px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.newchatclose {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  cursor: pointer;
+}

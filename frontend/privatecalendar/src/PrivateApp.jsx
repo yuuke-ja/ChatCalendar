@@ -22,6 +22,8 @@ export default function App() {
   const [newChatModalOpen, setNewChatModalOpen] = useState(false);
   const [allcountbatch, setallcountbatch] = useState({});
   const [UserinformationOpen, setUserinformationOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [listorcalendar, setlistorcalendar] = useState("calendar");
   const [calendarStartDate, setCalendarStartDate] = useState(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
@@ -60,6 +62,13 @@ export default function App() {
 
   const Header = ({ chatroomName, calendarStartDate, onPrev, onNext }) => (
     <header className="header">
+      {isMobile && (
+        <div className="mobile-header">
+          <button className="menu-button" onClick={() => setlistorcalendar("list")}>
+            ☰
+          </button>
+        </div>
+      )}
       <div id="title" className="title">{chatroomName}</div>
       <div className="calendar-controls">
         <button id="prev" onClick={onPrev}>◀</button>
@@ -184,6 +193,25 @@ export default function App() {
       socketRef.current?.disconnect();
     };
   }, []);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const handler = (e) => {
+      setIsMobile(e.matches);
+    };
+
+    // 初期値セット
+    setIsMobile(mediaQuery.matches);
+
+    // 変更を監視
+    mediaQuery.addEventListener("change", handler);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handler);
+    };
+  }, []);
+  const isMobileList = isMobile && listorcalendar === "list";
+  const isMobileCalendar = isMobile && listorcalendar === "calendar";
 
   const handleCloseModal = () => {
     setIsClosing(true);
@@ -194,7 +222,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}`}>
+    <div className={`app-layout${selectedDate ? " with-modal" : ""} ${isClosing ? " closing-modal" : ""}${isMobileList ? " mobile-list" : ""}${isMobileCalendar ? " mobile-calendar" : ""}`}>
       <aside className="sidebar">
         <div className="sidebar-section sidebar-top">
           <div className="sidebar-section-header">
@@ -221,7 +249,7 @@ export default function App() {
                 <button
                   key={chat.id}
                   className={`sidebar-chat-button${view ? " is-active" : ""}`}
-                  onClick={() => selectChatroom(chat.id)}
+                  onClick={() => { selectChatroom(chat.id), setlistorcalendar("calendar") }}
                 >
                   <span className="sidebar-chat-name">{chat.chatid}</span>
                   {roomcount > 0 && <span className="chatroombatch">{roomcount}</span>}

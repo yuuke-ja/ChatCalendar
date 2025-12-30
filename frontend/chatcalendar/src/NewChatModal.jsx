@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./NewChatModal.css";
 
 export default function NewChatModal({ onClose, socket }) {
   const [chatId, setChatId] = useState("");

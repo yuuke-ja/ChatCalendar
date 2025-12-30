@@ -484,7 +484,7 @@ a{ color:black; text-decoration:none; }
 .calendar-controls {
   position: absolute;
   top: 50%;
-  left: 2%;
+  left: 40px;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
@@ -492,6 +492,15 @@ a{ color:black; text-decoration:none; }
 }
 #prev, #next {
   background: transparent;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  min-width: 0;
+  border: none;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 /*ヘッダー*/
 .header {
@@ -504,6 +513,27 @@ a{ color:black; text-decoration:none; }
   right: 0;
   z-index: 999;
 
+}
+.mobile-header {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+.menu-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 22px;
+  cursor: pointer;
 }
 .screen-overlay {
   position: fixed;        /* 画面全体に固定 */
@@ -1388,7 +1418,7 @@ button {
   transition: background 0.15s ease; 
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .home, .logout {
     position: static;
     left: auto;
@@ -1430,7 +1460,24 @@ button {
     order: 4;
     width: 100%;
   }
+  .sidebar {
+    width: 100%;
+  }
+  .main-view {
+    width: 100%;
+    margin-left: 0;
+  }
+  .app-layout.mobile-list .main-view {
+    display: none;
+  }
+  .app-layout.mobile-calendar .sidebar {
+    display: none;
+  }
+  .app-layout.mobile-calendar #chatcalendar {
+    width: 100vw;
+  }
 }
+
 
 .modal {
   position: fixed;

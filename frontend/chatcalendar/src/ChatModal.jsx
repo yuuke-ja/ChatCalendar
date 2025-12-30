@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
+import "./ChatModal.css";
 
 export default function ChatModal({ socket, roomId, selectedDate, myEmail, closeModal, myrole, authorityOn }) {
   const [chatList, setChatList] = useState(null);
@@ -26,10 +27,9 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const [googleRefreshToken, setgoogleRefreshToken] = useState("")
   const [uploadImage, setUploadImage] = useState(false);
 
-
-
-
   const pickerRef = useRef(null);
+  const scrollBehaviorRef = useRef("auto");
+  const initialLoadRef = useRef(true);
 
   const [showAllReactions, setShowAllReactions] = useState(null); // null or { messageId, type, reactions }
   const canSeeImportantButton = authorityOn
@@ -79,14 +79,25 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   }
 
   const scrollToBottom = () => {
-    if (chatHistoryRef.current) {
-      chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
+    const el = chatHistoryRef.current;
+    if (!el) return;
+    const behavior = scrollBehaviorRef.current || "auto";
+    const top = el.scrollHeight;
+    if (typeof el.scrollTo === "function") {
+      el.scrollTo({ top, behavior });
+    } else {
+      el.scrollTop = top;
     }
+    scrollBehaviorRef.current = "auto";
   };
   // メッセージ一覧が更新されたら常に下までスクロール
-  useEffect(() => {
+  useLayoutEffect(() => {
     scrollToBottom();
   }, [chatList]);
+
+  useEffect(() => {
+    initialLoadRef.current = true;
+  }, [selectedDate, roomId]);
 
   //外部クリックでメニューを閉じる
   useEffect(() => {
@@ -159,6 +170,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       try {
         const res = await fetch(`/getchat?date=${selectedDate}&roomId=${encodeURIComponent(roomId)}`);
         const { chat } = await res.json();
+        scrollBehaviorRef.current = "auto";
         setChatList(prev => {
           const serverChats = Array.isArray(chat) ? chat : [];
           const merged = new Map();
@@ -178,7 +190,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
             (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
           );
         });
-        setTimeout(scrollToBottom, 50);
+        initialLoadRef.current = false;
       } catch (e) {
         console.error("チャット取得失敗:", e);
       }
@@ -246,6 +258,9 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       if (data.date === selectedDate && data.chat) {
         //探して置き換え
         const normalizeDate = v => (v ? String(v).split('T')[0] : '');
+        if (!initialLoadRef.current) {
+          scrollBehaviorRef.current = "smooth";
+        }
         setChatList(prev => {
           if (!Array.isArray(prev)) return [data.chat];
           const idx = prev.findIndex((c, i) => {
@@ -272,7 +287,6 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
           return [...prev, data.chat];
         });
 
-        setTimeout(scrollToBottom, 50);
       }
     };
 
@@ -306,6 +320,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     if (!socket) return;
     if ((!text || text.trim() === "") && !imageFile) return;
 
+    scrollBehaviorRef.current = "smooth";
     const provisionalId = `temp-${Date.now()}`;
     const provisional = {
       id: provisionalId,
