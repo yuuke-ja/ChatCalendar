@@ -31,7 +31,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const scrollBehaviorRef = useRef("auto");
   const initialLoadRef = useRef(true);
 
-  const [showAllReactions, setShowAllReactions] = useState(null); // null or { messageId, type, reactions }
+  const [showAllReactions, setShowAllReactions] = useState(null);
   const canSeeImportantButton = authorityOn
     ? (myrole === "leader" || myrole === "subleader")
     : true;
@@ -47,6 +47,54 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       return url;
     }
   };
+  const pressTimerRef = useRef(null);
+
+  const startLongPress = (e, onLongPress) => {
+    if (e.pointerType !== "touch") return;
+    pressTimerRef.current = window.setTimeout(() => {
+      onLongPress();
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  };
+  const openTextMenu = (c, e) => {
+    if (c.deleted) return;
+    e?.preventDefault();
+    // 自分のメッセージ  削除も保存も出す
+    if (c.email === myEmail) {
+      setDeleteTarget({
+        id: c.id,
+        realId: c.realId || c.id,
+        action: "both",
+        content: c.content,
+      });
+      return;
+    }
+    // 他人のメッセージ 保存のみ
+    setDeleteTarget({
+      id: c.id,
+      realId: c.realId || c.id,
+      action: "calendar",
+      content: c.content,
+    });
+  }
+
+  const openImageMenu = (c, e) => {
+    if (c.deleted) return;
+    e?.preventDefault();
+    if (c.email === myEmail && !c.deleted) {
+      setImageDeleteTarget({
+        id: c.id,
+        action: "delete",
+        realId: c.realId || c.id,
+      });
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -126,16 +174,14 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     }
     return () => document.removeEventListener("mousedown", closeOnOutside);
   }, [imageDeleteTarget]);
-
-  useEffect(() => {
-    fetch('/getgooglelist', { method: 'GET' })
-      .then(res => res.json())
-      .then(data => {
-        setgoogleAccessToken(data.googleAccessToken)
-        setgoogleRefreshToken(data.googleRefreshToken)
-      })
-  }, [])
-
+  const getgooglelist = async () => {
+    const res = await fetch("/getgooglelist");
+    if (!res.ok) throw new Error("fetch failed");
+    const data = await res.json();
+    setgoogleAccessToken(data.googleAccessToken || "");
+    setgoogleRefreshToken(data.googleRefreshToken || "");
+    return data;
+  };
   useEffect(() => {
     if (!socket) return;
 
@@ -512,29 +558,12 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                       className="content"
                       onMouseEnter={() => setreactionmessageid({ messageId: c.id, type: "text" })}
                       onMouseLeave={() => setreactionmessageid(null)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-
-                        if (c.deleted) return;
-
-                        // 自分のメッセージ  削除も保存も出す
-                        if (c.email === myEmail) {
-                          setDeleteTarget({
-                            id: c.id,
-                            realId: c.realId || c.id,
-                            action: "both",
-                            content: c.content,
-                          });
-                          return;
-                        }
-                        // 他人のメッセージ 保存のみ
-                        setDeleteTarget({
-                          id: c.id,
-                          realId: c.realId || c.id,
-                          action: "calendar",
-                          content: c.content,
-                        });
-                      }}
+                      onContextMenu={(e) => { openTextMenu(c, e) }}
+                      onPointerDown={(e) => startLongPress(e, () => openTextMenu(c, e))}
+                      onPointerUp={cancelLongPress}
+                      onPointerLeave={cancelLongPress}
+                      onPointerMove={cancelLongPress}
+                      onPointerCancel={cancelLongPress}
                     >
                       {c.content}
                     </div>
@@ -587,15 +616,22 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                               setDeleteTarget(null);
                             }}>マイカレンダー</button>
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (!deleteTarget?.content) return;
                                 if (!selectedDate) {
                                   alert("日付を選択してください");
                                   return;
                                 }
-                                if (!googleAccessToken || !googleRefreshToken) {
-                                  alert("Googleカレンダーに連携してください。")
-                                  return
+                                let data;
+                                try {
+                                  data = await getgooglelist();
+                                } catch (e) {
+                                  alert("Google情報の取得に失敗しました");
+                                  return;
+                                }
+                                if (!data?.googleAccessToken || !data?.googleRefreshToken) {
+                                  alert("Googleカレンダーに連携してください。");
+                                  return;
                                 }
                                 setGoogleSaveTarget({
                                   content: deleteTarget.content,
@@ -761,17 +797,12 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                       alt="投稿画像"
                       className="chat-image"
                       onClick={() => setscreenImage(c.imageUrl)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        if (c.email === myEmail && !c.deleted) {
-                          setImageDeleteTarget({
-                            id: c.id,
-                            action: "delete",
-                            realId: c.realId || c.id,
-                          });
-                          return;
-                        }
-                      }}
+                      onContextMenu={(e) => openImageMenu(c, e)}
+                      onPointerDown={(e) => startLongPress(e, () => openImageMenu(c, e))}
+                      onPointerUp={cancelLongPress}
+                      onPointerLeave={cancelLongPress}
+                      onPointerMove={cancelLongPress}
+                      onPointerCancel={cancelLongPress}
                     />
                     {imageDeleteTarget && imageDeleteTarget.id === c.id && (
                       <div className="image-menu">
