@@ -118,7 +118,7 @@
   .calendar-controls {
     position: absolute;
     top: 50%;
-    left: 25%;
+    left: 35%;
     transform: translate(-50%, -50%);
     justify-content: center;
     padding: 0;
@@ -135,7 +135,7 @@
   }
 
   .datelist-button {
-    left: 53%;
+    left: 60%;
   }
 
   .Userinformation {
@@ -146,7 +146,7 @@
   }
 
   .checkuser {
-    right: 26%;
+    right: 15%;
     width: 40px;
     height: 40px;
     padding: 0;
