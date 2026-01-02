@@ -117,3 +117,25 @@ td:last-child {
   font-size: 0.6em;
   z-index: 666;
 }
+
+@media (max-width: 768px) {
+  #chatcalendar {
+    width: 94vw;
+  }
+
+  table {
+    font-size: 4vw;
+  }
+
+  td {
+    aspect-ratio: 3 / 4;
+  }
+
+  td::before {
+    padding-top: 120%;
+  }
+
+  h1 {
+    font-size: 8vw;
+  }
+}

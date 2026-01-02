@@ -110,8 +110,55 @@
 @media (max-width: 768px) {
   .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 2%;
+  }
+
+  .calendar-controls {
+    position: absolute;
+    top: 50%;
+    left: 42%;
+    transform: translate(-50%, -50%);
+    justify-content: center;
+    padding: 0;
+    font-size: 16px;
+  }
+
+  .calendar-controls span {
+    font-weight: 700;
+  }
+
+  .calendar-controls button {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .datelist-button {
+    left: 53%;
+  }
+
+  .Userinformation {
+    right: 2%;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  .checkuser {
+    right: 26%;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  .mobile-header {
+    left: 2%;
+  }
+
+  .menu-button {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
   }
 }
