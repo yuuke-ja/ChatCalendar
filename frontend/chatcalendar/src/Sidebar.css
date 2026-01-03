@@ -3,15 +3,12 @@
   top: 60px;
   left: 0;
   width: 220px;
-  height: calc(var(--app-height, 100vh) - 60px);
-  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(100vh - 60px);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   gap: 16px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   transition: transform 0.3s ease;
   border-right: 1px solid rgba(26, 90, 71, 0.08);
   box-shadow: 4px 0 18px rgba(0, 0, 0, 0.05);
