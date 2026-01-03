@@ -4,6 +4,9 @@
   left: 0;
   width: 220px;
   height: calc(100vh - 60px);
+  height: calc(100svh - 60px);
+  height: calc(100dvh - 60px);
+  padding-bottom: env(safe-area-inset-bottom);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
