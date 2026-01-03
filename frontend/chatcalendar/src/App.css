@@ -1,3 +1,7 @@
+:root {
+  --app-height: 100vh;
+}
+
 html, body {
   font-family: 'Inter', 'Noto Sans JP', 'Helvetica Neue', Arial, sans-serif !important;
   -webkit-font-smoothing: antialiased;
@@ -60,7 +64,7 @@ a {
 
 .app-layout {
   display: flex;
-  height: 100vh;
+  height: var(--app-height);
 }
 
 .main-view {

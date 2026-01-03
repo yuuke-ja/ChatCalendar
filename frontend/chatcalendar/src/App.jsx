@@ -54,6 +54,28 @@ export default function App() {
     if (savedDate) setCalendarStartDate(new Date(savedDate));
   }, []);
 
+  useEffect(() => {
+    const updateAppHeight = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
+    };
+
+    updateAppHeight();
+    window.addEventListener("resize", updateAppHeight);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateAppHeight);
+      window.visualViewport.addEventListener("scroll", updateAppHeight);
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateAppHeight);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", updateAppHeight);
+        window.visualViewport.removeEventListener("scroll", updateAppHeight);
+      }
+    };
+  }, []);
+
   const chatroomIdRef = useRef(null);
   useEffect(() => {
     chatroomIdRef.current = chatroomId;
