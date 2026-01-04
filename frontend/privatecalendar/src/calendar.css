@@ -1430,9 +1430,25 @@ button {
   }
   .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 2%;
+  }
+  .calendar-controls {
+    position: absolute;
+    top: 50%;
+    left: 35%;
+    transform: translate(-50%, -50%);
+    justify-content: center;
+    padding: 0;
+    font-size: 16px;
+  }
+  .calendar-controls span {
+    font-weight: 700;
+  }
+  .calendar-controls button {
+    font-size: 16px;
+    font-weight: 600;
   }
   .chatmodal{
     box-sizing: border-box;
@@ -1462,6 +1478,9 @@ button {
   }
   .sidebar {
     width: 100%;
+    height: calc(100svh - 60px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .main-view {
     width: 100%;
@@ -1475,6 +1494,41 @@ button {
   }
   .app-layout.mobile-calendar #chatcalendar {
     width: 100vw;
+  }
+  #chatcalendar {
+    width: 94vw;
+  }
+  table {
+    font-size: 4vw;
+  }
+  td {
+    aspect-ratio: 3 / 4;
+  }
+  td::before {
+    padding-top: 120%;
+  }
+  h1 {
+    font-size: 8vw;
+  }
+  .Userinformation {
+    right: 2%;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+  .checkuser {
+    right: 15%;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+  .mobile-header {
+    left: 2%;
+  }
+  .menu-button {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
   }
 }
 
