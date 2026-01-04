@@ -297,6 +297,19 @@
       transition: none;
     }
 
+    .step-image--double {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .step-image--double img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
     .step-card--invite .step-image {
       padding: 0;
     }
@@ -530,13 +543,14 @@
 
         <!-- Step 5 -->
         <article class="step-card">
-          <div class="step-image">
-            <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="振り返り">
+          <div class="step-image step-image--double">
+            <img src="/images/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202026-01-04%2015.13.04.png" alt="権限の設定">
+            <img src="/images/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202026-01-04%2015.13.54.png" alt="サブリーダーの表示">
           </div>
           <div class="step-content">
             <div class="step-number">5</div>
-            <h3>いつでも見返せる</h3>
-            <p>「あの話、いつしたっけ？」と思ったらカレンダーを遡るだけ。過去の決定事項もすぐに探せます。</p>
+            <h3>権限を使い分ける</h3>
+            <p>リーダーが権限のON/OFFを切り替え、サブリーダーは権限がOFFでも必要な操作を継続できます。</p>
           </div>
         </article>
       </div>
