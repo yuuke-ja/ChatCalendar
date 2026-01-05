@@ -13,6 +13,7 @@ export default function RoomDetailsModal({
   onToggleAuthority,
   onToggleInvitationAuthority,
   onLeaveRoom,
+  onDeletingRoom
 }) {
   return (
     <div className="roomdetails-overlay" onClick={onClose}>
@@ -52,6 +53,9 @@ export default function RoomDetailsModal({
             </button>
           )}
           <button className="deletemyuser" onClick={onLeaveRoom}>退出する</button>
+          {myrole === "leader" && (
+            <button onClick={onDeletingRoom}>ルーム削除</button>
+          )}
         </div>
       </div>
     </div>

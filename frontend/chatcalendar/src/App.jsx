@@ -112,7 +112,11 @@ export default function App() {
     if (!window.confirm("本当にこのルームから退出しますか？")) return
     socketRef.current.emit("delete-myuser", { chatroomId, userEmail: myEmail })
   }
-
+  function deleteroom() {
+    if (!window.confirm("本当にこのルームを削除しますか？")) return;
+    if (!socketRef.current || !chatroomId) return;
+    socketRef.current.emit("delete-chatroom", { chatroomId });
+  }
 
   useEffect(() => {
     async function fetchChatList() {
@@ -313,6 +317,12 @@ export default function App() {
           }
           setparticipants(prev => prev.filter(p => p.email !== myEmail));
         })
+        socket.on("chatroom-deleted", ({ chatroomId: deletedRoomId }) => {
+          setChatList(prev => prev.filter(chat => chat.id !== deletedRoomId));
+          if (chatroomIdRef.current === deletedRoomId) {
+            window.location.href = "/privatecalendar";
+          }
+        })
         socket.on("chat-date-cleared", ({ chatroomId: updateroomId, date }) => {
           setallcountbatch(prev => {
             const next = { ...prev };
@@ -484,6 +494,7 @@ export default function App() {
           onToggleAuthority={chengeauthority}
           onToggleInvitationAuthority={chengeinvitationauthority}
           onLeaveRoom={deletemyuser}
+          onDeletingRoom={deleteroom}
         />
       )}
       {viewdatelist && (

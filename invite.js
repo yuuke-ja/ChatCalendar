@@ -80,7 +80,7 @@ function registerInviteRoutes({
       const { email } = req.body || {};
       if (!email) return res.status(400).json({ ok: false, reason: 'bad_request' });
       const room = await prisma.chatroom.findUnique({ where: { id: chatroomId } });
-      if (!room) return res.status(404).json({ ok: false, reason: 'room_not_found' });
+      if (!room || room.deleted) return res.status(404).json({ ok: false, reason: 'room_not_found' });
       const inviter = await prisma.user.findUnique({ where: { email: req.session.useremail } });
       if (!inviter) return res.redirect('/login');
       const inviterMember = await prisma.chatmember.findFirst({ where: { chatroomId, userId: inviter.id } });

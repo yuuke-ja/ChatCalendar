@@ -71,6 +71,7 @@ model Chatroom {
   chatid       String
   authority    Boolean @default(false)
   invitationauthority    Boolean @default(false)
+  deleted      Boolean @default(false)
   chatmember   Chatmember[]
   chatmessages Chatmessage[]
   countbatches Countbatch[]

@@ -78,7 +78,7 @@ function registerChatRoutes({
     const email = req.session.logined;
     const user = await prisma.user.findUnique({ where: { email } });
     const chatmembers = await prisma.chatmember.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, chatroom: { deleted: false } },
       include: { chatroom: true },
     });
 
@@ -159,7 +159,7 @@ function registerChatRoutes({
     if (!member) return res.redirect('/privatecalendar');
 
     const chatroom = await prisma.chatroom.findUnique({ where: { id: chatroomId } });
-    if (!chatroom) return res.redirect('/privatecalendar');
+    if (!chatroom || chatroom.deleted) return res.redirect('/privatecalendar');
     const chatss = await prisma.chatmessage.findMany({
       where: {
         chatroomId: chatroomId,
@@ -347,7 +347,7 @@ function registerChatRoutes({
       const member = await prisma.chatmember.findFirst({ where: { chatroomId: chatroomid, userId: user.id } });
       if (!member) return res.redirect('/privatecalendar');
       const chatroom = await prisma.chatroom.findUnique({ where: { id: chatroomid } });
-      if (!chatroom) return res.redirect('/privatecalendar');
+      if (!chatroom || chatroom.deleted) return res.redirect('/privatecalendar');
       if (isNaN(start) || isNaN(end)) {
         return res.status(400).send('無効な日付です');
       }

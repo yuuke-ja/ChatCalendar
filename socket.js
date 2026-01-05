@@ -1,5 +1,7 @@
 'use strict';
 
+const { chat } = require("googleapis/build/src/apis/chat");
+
 function registerSocketHandlers({ io, prisma, normalizeDate }) {
   function socketlogincheck(socket, next) {
     if (!socket.request.session || !socket.request.session.logined) {
@@ -37,7 +39,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
       console.log('typeof chatroomid:', typeof chatroomid);
       const chatrooms = await prisma.chatroom.findUnique({ where: { id: chatroomid } });
       try {
-        if (!chatrooms) return;
+        if (!chatrooms || chatrooms.deleted) return;
 
         const chatss = await prisma.chatmessage.findMany({
           where: {
@@ -141,6 +143,11 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         const datestamp = new Date(normalizeDate(date) + 'T00:00:00.000Z');
         if (isNaN(datestamp)) {
           socket.emit('送信失敗', '無効な日付です');
+          return;
+        }
+        const room = await prisma.chatroom.findUnique({ where: { id: roomId } });
+        if (!room || room.deleted) {
+          socket.emit('送信失敗', 'チャットルームが見つかりません');
           return;
         }
         console.log(`ユーザ情報${user}`);
@@ -498,6 +505,38 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         console.log(`removed ${userEmail} from ${chatroomId}`);
       } catch (e) {
         console.error('remove-member error:', e);
+        socket.emit('error-message', { message: 'サーバーエラー' });
+      }
+    });
+    socket.on('delete-chatroom', async ({ chatroomId, }) => {
+      try{
+        const  user = await prisma.user.findUnique({ where: { email: socket.request.session?.logined } });
+        if(!user){
+          socket.emit('error-message',{message:'ログインしてください'});
+          return;
+        }
+        const member=await prisma.chatmember.findFirst({
+          where:{chatroomId,userId:user.id}
+        });
+        if(!member || member.role !=='leader'){
+          socket.emit('error-message',{message:'権限がありません'});
+          return;
+        }
+        const members = await prisma.chatmember.findMany({
+          where: { chatroomId },
+          select: { userId: true },
+        });
+        await prisma.chatroom.update({
+          where:{id:chatroomId},
+          data:{deleted:true}
+        })
+        io.to(chatroomId).emit("chatroom-deleted", { chatroomId }); 
+        members.forEach(({ userId }) => {
+          io.to(userId).emit("chatroom-deleted", { chatroomId });
+        });
+
+      } catch(e){
+        console.error('delete-chatroom error:', e);
         socket.emit('error-message', { message: 'サーバーエラー' });
       }
     });
