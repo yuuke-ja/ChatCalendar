@@ -276,7 +276,7 @@ function registerGoogleRoutes({
   app.post('/save-googlecalendar', logincheck, async (req, res) => {
     const email = req.session.logined;
     const user = await prisma.user.findUnique({ where: { email } });
-    const { date, content, title } = req.body;
+    const { date, content, title, allday, startTime, endTime, notification } = req.body;
     const oAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -290,14 +290,26 @@ function registerGoogleRoutes({
     if (!user.googleAccessToken || !user.googleRefreshToken) {
       return res.status(400).json({ success: false, message: 'Google連携が必要です' });
     }
+    if (!allday && !startTime ) {
+      return res.status(400).json({ success: false, message: '開始時間を指定してください' });
+    }
+    const start = allday ? { date } : { dateTime: `${date}T${startTime}:00`, timeZone: "Asia/Tokyo" };
+    const end = allday ? { date } : { dateTime: `${date}T${endTime || startTime}:00`, timeZone: "Asia/Tokyo" };
+    const minutes = Number.isFinite(Number(notification)) ? Number(notification) : null;
+    const reminders = minutes === null
+      ? { useDefault: true }
+      : minutes === 0
+        ? { useDefault: false, overrides: [] } // 0は通知なし
+        : { useDefault: false, overrides: [{ method: "popup", minutes }] };
     try {
       const response = await calendar.events.insert({
         calendarId: 'primary',
         requestBody: {
           summary: title || '(タイトルなし)',
           description: content || '（内容なし）',
-          start: { date },
-          end: { date },
+          start: start,
+          end: end,
+          reminders,
         },
       });
       res.json({ success: true, link: response.data.htmlLink });

@@ -22,10 +22,18 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const [showopensavecalendar, setshowopensavecalendar] = useState(false)
   const [googletitle, setgoogletitle] = useState(false)
   const [titlee, setTitlee] = useState("");
+  const [clickedtitle, setclickedtitle] = useState(true);
+  const [detail, setDetail] = useState("");
+  const [clickdetail, setclickdetail] = useState(false);
+  const [startTime, setstartTime] = useState("");
+  const [endTime, setendTime] = useState("");
+  const [allday, setAllday] = useState(false);
+  const [notification, setNotification] = useState("");
   const [googleSaveTarget, setGoogleSaveTarget] = useState(null);
   const [googleAccessToken, setgoogleAccessToken] = useState("")
   const [googleRefreshToken, setgoogleRefreshToken] = useState("")
   const [uploadImage, setUploadImage] = useState(false);
+
 
   const pickerRef = useRef(null);
   const scrollBehaviorRef = useRef("auto");
@@ -113,6 +121,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     setgoogletitle(false);
     setGoogleSaveTarget(null);
     setTitlee("");
+    setDetail("");
   };
 
   // 絵文字をグループ化
@@ -160,6 +169,17 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     }
     return () => document.removeEventListener("mousedown", closeOnOutside);
   }, [deleteTarget]);
+  useEffect(() => {
+    if (!googletitle || !googleSaveTarget) return;
+    const content = googleSaveTarget.content || "";
+    if (clickedtitle) {
+      setTitlee(content);
+      setDetail("");
+    } else if (clickdetail) {
+      setDetail(content);
+      setTitlee("");
+    }
+  }, [googletitle, googleSaveTarget, clickedtitle, clickdetail])
 
   //外部クリックでメニューを閉じる画像
   useEffect(() => {
@@ -992,13 +1012,41 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         createPortal(
           <div className="member-overlay" onClick={closeGoogleModal}>
             <div className="googletitlemodal" onClick={(e) => e.stopPropagation()}>
-              <button
-                className="newchatclose"
-                onClick={closeGoogleModal}
-                aria-label="閉じる"
-              >
-                ×
-              </button>
+              <div className="googletitle-header">
+                <h2>Googleカレンダーに保存</h2>
+                <button
+                  className="newchatclose"
+                  onClick={closeGoogleModal}
+                  aria-label="閉じる"
+                >
+                  ×
+                </button>
+              </div>
+              <h3>保存先</h3>
+              <div className="savetype-options">
+                <label className="save-mode-option">
+                  <input
+                    type="radio"
+                    name="saveMode"
+                    value="title"
+                    checked={clickedtitle}
+                    onChange={() => { setclickedtitle(true); setclickdetail(false); }}
+                  />
+                  <span>タイトルに入れる</span>
+                </label>
+
+                <label className="save-type-option">
+                  <input
+                    type="radio"
+                    name="saveMode"
+                    value="detail"
+                    checked={clickdetail}
+                    onChange={() => { setclickdetail(true); setclickedtitle(false); }}
+                  />
+                  <span>詳細に入れる</span>
+                </label>
+              </div>
+
               <h2>タイトル</h2>
               <input
                 type="text"
@@ -1006,17 +1054,64 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                 onChange={(e) => setTitlee(e.target.value)}
                 placeholder="ここに入力"
               />
+              <h2>詳細</h2>
+              <input
+                type="text"
+                value={detail}
+                onChange={(e) => setDetail(e.target.value)}
+                placeholder="ここに入力"
+              />
+              <h3>日時</h3>
+              <div className="alldate">
+                <input
+                  type="checkbox"
+                  checked={allday}
+                  onChange={() => setAllday(!allday)}
+                />
+                <span>終日</span>
+              </div>
+              {!allday && (
+                <>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setstartTime(e.target.value)}
+                  />
+                  <input type="time" value={endTime} onChange={(e) => setendTime(e.target.value)} />
+                </>
+              )}
+              <h3>通知</h3>
+              <input
+                type="number"
+                min="0"
+                max="40000"
+                value={notification}
+                onChange={(e) => setNotification(e.target.value)}
+              ></input>
+              <span>分前に通知</span>
+
+
+
+
               <button
                 onClick={async () => {
                   if (!googleSaveTarget?.content || !googleSaveTarget?.date) return;
+                  if (!allday && !startTime) {
+                    alert("開始時刻を入力してください");
+                    return;
+                  }
                   try {
                     const res = await fetch("/save-googlecalendar", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         title: titlee,
-                        content: googleSaveTarget.content,
+                        content: detail,
                         date: googleSaveTarget.date,
+                        allday,
+                        startTime,
+                        endTime,
+                        notification: notification === "" ? null : Number(notification),
                       }),
                     });
                     const body = await res.json().catch(() => null);
