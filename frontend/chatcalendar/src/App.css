@@ -222,6 +222,65 @@ button {
   animation: popIn 0.25s ease;
 }
 
+.join-screen {
+  width: 100%;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  text-align: center;
+}
+
+.join-screen h2 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.06em;
+}
+
+.join-actions {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+}
+
+.join-actions button {
+  background: transparent;
+  border: none;
+  font-size: 30px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.join-actions button:hover {
+  transform: translateY(-1px);
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .join-screen {
+    min-height: 50vh;
+    gap: 24px;
+  }
+
+  .join-screen h2 {
+    font-size: 28px;
+  }
+
+  .join-actions {
+    gap: 32px;
+  }
+
+  .join-actions button {
+    font-size: 22px;
+  }
+}
+
 .userinfo-modal h2 {
   font-size: 1.4rem;
   border-bottom: 2px solid #eee;

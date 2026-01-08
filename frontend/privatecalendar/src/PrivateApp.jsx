@@ -248,7 +248,7 @@ export default function App() {
               return (
                 <button
                   key={chat.id}
-                  className={`sidebar-chat-button${view ? " is-active" : ""}`}
+                  className={`sidebar-chat-button${view ? " is-active" : chat.enter === false ? " enterlist" : ""}`}
                   onClick={() => { selectChatroom(chat.id), setlistorcalendar("calendar") }}
                 >
                   <span className="sidebar-chat-name">{chat.chatid}</span>

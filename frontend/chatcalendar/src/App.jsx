@@ -36,6 +36,8 @@ export default function App() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [listorcalendar, setlistorcalendar] = useState("calendar");
+  const [notentermodal, setnotentermodal] = useState(false);
+  const [enteringchatid, setenteringchatid] = useState(null);
   const [calendarStartDate, setCalendarStartDate] = useState(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
@@ -145,6 +147,68 @@ export default function App() {
     setCalendarStartDate(today);
     localStorage.setItem("calendarStartDate", today.toISOString());
   };
+  const handleselectchatroom = (chat) => {
+    if (!chat) return;
+    setChatroomId(chat.id);
+    if (chat.enter === false) {
+      window.history.replaceState(null, "", `/chatcalendar?roomId=${chat.id}`);
+      setSelectedDate(null);
+      setnotentermodal(true);
+      setenteringchatid(chat);
+      return;
+    }
+    if (chat.enter === true) {
+      setnotentermodal(false);
+      setenteringchatid(null);
+      setChatroomId(chat.id);
+    }
+    selectChatroom(chat.id);
+    setlistorcalendar("calendar");
+  }
+  const handleEntering = async () => {
+    const target = enteringchatid;
+    if (!target?.id || !socketRef.current) return;
+    socketRef.current.emit("enterning-chatroom", { chatroomId: target.id }, (rep) => {
+      if (!rep?.ok) {
+        alert("参加に失敗しました");
+        return;
+      }
+      setChatList(prev => prev.map(chat => (chat.id === target.id ? { ...chat, enter: true } : chat)));
+      setnotentermodal(false);
+      setenteringchatid(null);
+      selectChatroom(target.id);
+      setlistorcalendar("calendar");
+    });
+  };
+  const handleNotEntering = async () => {
+    const target = enteringchatid;
+    if (!target?.id) {
+      setnotentermodal(false);
+      setenteringchatid(null);
+      return;
+    }
+    try {
+      const res = await fetch("/api/chatmember/decline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatroomId: target.id }),
+      });
+      if (!res.ok) {
+        alert("拒否に失敗しました");
+        return;
+      }
+      setChatList(prev => prev.filter(chat => chat.id !== target.id));
+      if (chatroomId === target.id) {
+        setChatroomId(null);
+      }
+      setnotentermodal(false);
+      setenteringchatid(null);
+      window.location.href = "/privatecalendar";
+    } catch (e) {
+      console.error("辞退処理失敗:", e);
+      alert("拒否に失敗しました");
+    }
+  }
   const selectChatroom = async (chatId) => {
     const seq = ++pendingRequestRef.current; // このリクエストが最新か判定するための番号
     // 即座に選択を反映させる
@@ -164,6 +228,12 @@ export default function App() {
     } catch (e) {
       if (e.name === "AbortError") return;
       throw e;
+    }
+    if (res.status === 403) {
+      const pendingChat = chatList.find(c => c.id === chatId);
+      setenteringchatid(pendingChat || { id: chatId, chatid: "このルーム" });
+      setnotentermodal(true);
+      return;
     }
     if (!res.ok || res.redirected) {
       window.location.href = res.url || '/privatecalendar';
@@ -206,9 +276,196 @@ export default function App() {
     let mounted = true;
     (async () => {
       try {
+        if (!socketRef.current) {
+          socketRef.current = io("/", {
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000
+          });
+          const socket = socketRef.current;
+
+          const rejoinActiveRoom = () => {
+            const activeId = chatroomIdRef.current;
+            if (activeId) socket.emit("joinRoom", activeId);
+          };
+
+          socket.on("connect", () => {
+            setSocketReady(true);
+            rejoinActiveRoom();
+          });
+          socket.on("disconnect", (reason) => {
+            console.log("Socket disconnected:", reason);
+          });
+
+          // 再接続試行中
+          socket.on("reconnect_attempt", (attempts) => {
+            console.log(`Reconnection attempt #${attempts}`);
+          });
+
+          // 再接続成功
+          socket.on("reconnect", (attempts) => {
+            console.log(`Reconnected after ${attempts} attempts`);
+            rejoinActiveRoom();
+          });
+
+          socket.on("reconnect_failed", () => {
+            console.log("再接続失敗！ページをリロードします");
+            window.location.reload(); // 上限に達したらリロード
+          });
+          socket.on("reflection-username", (username) => {
+            setMyUsername(username)
+          })
+
+        socket.on("newchatlist", (chat) => {
+          setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? true }]);
+        });
+        socket.on("invitelist", (chat) => {
+          setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? false }]);
+        })
+          socket.on("participants", ({ participants }) => {
+            setparticipants(participants || []);
+          });
+          socket.on("authority-changed", ({ chatroomId, val }) => {
+            setAuthorityOn(val);
+          });
+          socket.on("invitation-authority-changed", ({ chatroomId, val }) => {
+            setinvitationauthorityOn(val);
+          });
+
+          socket.on("newrole", ({ userEmail, newrole }) => {
+            setparticipants(prev =>
+              prev.map(p =>
+                p.email === userEmail ? { ...p, role: newrole } : p
+              )
+            );
+          });
+          socket.on("member-removed", ({ chatroomId, userEmail }) => {
+            setparticipants(prev => prev.filter(p => p.email !== userEmail));
+            if (myEmail === userEmail) {
+              setChatList(prev => prev.filter(chat => chat.id !== chatroomId));
+              if (chatroomIdRef.current === chatroomId) {
+                window.location.href = "/privatecalendar";
+              }
+            }
+          })
+          socket.on("user-rename", ({ email, newName }) => {
+            setparticipants(prev =>
+              prev.map(p => {
+                if (p.email === email) {
+                  return { ...p, name: newName, username: newName };
+                }
+                return p;
+              })
+            );
+          });
+
+
+          socket.on("kicked", ({ chatroomId }) => {
+            setChatList(prev => prev.filter(chat => chat.id !== chatroomId));
+            if (chatroomIdRef.current === chatroomId) {
+              window.location.href = "/privatecalendar";
+            }
+            setparticipants(prev => prev.filter(p => p.email !== myEmail));
+          })
+          socket.on("chatroom-deleted", ({ chatroomId: deletedRoomId }) => {
+            setChatList(prev => prev.filter(chat => chat.id !== deletedRoomId));
+            if (chatroomIdRef.current === deletedRoomId) {
+              window.location.href = "/privatecalendar";
+            }
+          })
+          socket.on("chat-date-cleared", ({ chatroomId: updateroomId, date }) => {
+            setallcountbatch(prev => {
+              const next = { ...prev };
+              const key = String(updateroomId);
+              if (next[key]) {
+                const updated = { ...next[key] };
+                delete updated[date];
+                if (Object.keys(updated).length === 0) {
+                  delete next[key];
+                } else {
+                  next[key] = updated;
+                }
+              }
+              return next;
+            });
+
+            if (chatroomIdRef.current !== updateroomId) return;
+
+            setcountbatch(prev => {
+              const next = { ...prev };
+              delete next[date];
+              return next;
+            });
+
+            setMemodate(prev => prev.filter(d => d !== date));
+
+            if (selectedDateRef.current === date) {
+              setIsClosing(true);
+              setTimeout(() => {
+                setSelectedDate(null);
+                setIsClosing(false);
+              }, 300);
+            }
+          });
+
+          socket.on("countbatchupdate", ({ chatroomId: updateroomId, date, count }) => {
+            const activeRoom = chatroomIdRef.current;
+            const activeDate = selectedDateRef.current;
+
+            // 閲覧中は常に既読扱い（UIもDBも0）
+            if (String(activeRoom) === String(updateroomId) && activeDate === date) {
+              setcountbatch(prev => ({ ...prev, [date]: 0 }));
+              setallcountbatch(prev => {
+                const next = { ...prev };
+                const key = String(updateroomId);
+                if (!next[key]) next[key] = {};
+                next[key][date] = 0;
+                return next;
+              });
+              fetch('/api/deletecount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatroomId: updateroomId, date })
+              }).catch(err => console.error('deletecount error', err));
+              return;
+            }
+
+            // 閲覧していないときだけサーバ値を反映
+            setallcountbatch(prev => {
+              const next = { ...prev };
+              const key = String(updateroomId);
+              if (!next[key]) next[key] = {};
+              next[key][date] = count;
+              return next;
+            });
+            if (String(activeRoom) === String(updateroomId)) {
+              setcountbatch(prev => ({ ...prev, [date]: count }));
+            }
+          });
+
+          socket.on("newchat", (payload) => {
+            if (!payload || String(payload.chatroomId) !== String(chatroomIdRef.current)) {
+              return;
+            }
+            const chatdate = payload.date;
+            if (chatdate) {
+              setMemodate((prev) =>
+                prev.includes(chatdate) ? prev : [...prev, chatdate]
+              );
+            }
+          });
+        }
         const urlRoomId = new URLSearchParams(window.location.search).get("roomId");
         if (!urlRoomId) return;
         const res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(urlRoomId)}`);
+        if (res.status === 403) {
+          setenteringchatid({ id: urlRoomId, chatid: "このルーム" });
+          setChatroomId(urlRoomId);
+          setnotentermodal(true);
+          return;
+        }
         if (!res.ok || res.redirected) {
           window.location.href = res.url || '/privatecalendar';
           return;
@@ -225,173 +482,7 @@ export default function App() {
         setMemodate(data.memodate || []);
         setparticipants(data.participants || [])
 
-        socketRef.current = io("/", {
-          reconnection: true,
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000,
-          timeout: 20000
-        });
-        const socket = socketRef.current;
-
-        const rejoinActiveRoom = () => {
-          const activeId = chatroomIdRef.current || data.chatroomId;
-          if (activeId) socket.emit("joinRoom", activeId);
-        };
-
-        socket.on("connect", () => {
-          setSocketReady(true);
-          rejoinActiveRoom();
-        });
-        socket.on("disconnect", (reason) => {
-          console.log("Socket disconnected:", reason);
-        });
-
-        // 再接続試行中
-        socket.on("reconnect_attempt", (attempts) => {
-          console.log(`Reconnection attempt #${attempts}`);
-        });
-
-        // 再接続成功
-        socket.on("reconnect", (attempts) => {
-          console.log(`Reconnected after ${attempts} attempts`);
-          rejoinActiveRoom();
-        });
-
-        socket.on("reconnect_failed", () => {
-          console.log("再接続失敗！ページをリロードします");
-          window.location.reload(); // 上限に達したらリロード
-        });
-        socket.on("reflection-username", (username) => {
-          setMyUsername(username)
-        })
-
-        socket.on("newchatlist", (chat) => {
-          setChatList(prev => [...prev, chat]);
-        });
-        socket.on("invitelist", (chat) => {
-          setChatList(prev => [...prev, chat])
-        })
-        socket.on("participants", ({ participants }) => {
-          setparticipants(participants || []);
-        });
-        socket.on("authority-changed", ({ chatroomId, val }) => {
-          setAuthorityOn(val);
-        });
-        socket.on("invitation-authority-changed", ({ chatroomId, val }) => {
-          setinvitationauthorityOn(val);
-        });
-
-        socket.on("newrole", ({ userEmail, newrole }) => {
-          setparticipants(prev =>
-            prev.map(p =>
-              p.email === userEmail ? { ...p, role: newrole } : p
-            )
-          );
-        });
-        socket.on("member-removed", ({ chatroomId, userEmail }) => {
-          setparticipants(prev => prev.filter(p => p.email !== userEmail));
-          if (myEmail === userEmail) {
-            setChatList(prev => prev.filter(chat => chat.id !== chatroomId));
-            if (chatroomIdRef.current === chatroomId) {
-              window.location.href = "/privatecalendar";
-            }
-          }
-        })
-        socket.on("user-rename", ({ email, newName }) => {
-          setparticipants(prev =>
-            prev.map(p => {
-              if (p.email === email) {
-                return { ...p, name: newName, username: newName };
-              }
-              return p;
-            })
-          );
-        });
-
-
-        socket.on("kicked", ({ chatroomId }) => {
-          setChatList(prev => prev.filter(chat => chat.id !== chatroomId));
-          if (chatroomIdRef.current === chatroomId) {
-            window.location.href = "/privatecalendar";
-          }
-          setparticipants(prev => prev.filter(p => p.email !== myEmail));
-        })
-        socket.on("chatroom-deleted", ({ chatroomId: deletedRoomId }) => {
-          setChatList(prev => prev.filter(chat => chat.id !== deletedRoomId));
-          if (chatroomIdRef.current === deletedRoomId) {
-            window.location.href = "/privatecalendar";
-          }
-        })
-        socket.on("chat-date-cleared", ({ chatroomId: updateroomId, date }) => {
-          setallcountbatch(prev => {
-            const next = { ...prev };
-            const key = String(updateroomId);
-            if (next[key]) {
-              const updated = { ...next[key] };
-              delete updated[date];
-              if (Object.keys(updated).length === 0) {
-                delete next[key];
-              } else {
-                next[key] = updated;
-              }
-            }
-            return next;
-          });
-
-          if (chatroomIdRef.current !== updateroomId) return;
-
-          setcountbatch(prev => {
-            const next = { ...prev };
-            delete next[date];
-            return next;
-          });
-
-          setMemodate(prev => prev.filter(d => d !== date));
-
-          if (selectedDateRef.current === date) {
-            setIsClosing(true);
-            setTimeout(() => {
-              setSelectedDate(null);
-              setIsClosing(false);
-            }, 300);
-          }
-        });
-
-        socket.on("countbatchupdate", ({ chatroomId: updateroomId, date, count }) => {
-          const activeRoom = chatroomIdRef.current;
-          const activeDate = selectedDateRef.current;
-
-          // 閲覧中は常に既読扱い（UIもDBも0）
-          if (String(activeRoom) === String(updateroomId) && activeDate === date) {
-            setcountbatch(prev => ({ ...prev, [date]: 0 }));
-            setallcountbatch(prev => {
-              const next = { ...prev };
-              const key = String(updateroomId);
-              if (!next[key]) next[key] = {};
-              next[key][date] = 0;
-              return next;
-            });
-            fetch('/api/deletecount', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chatroomId: updateroomId, date })
-            }).catch(err => console.error('deletecount error', err));
-            return;
-          }
-
-          // 閲覧していないときだけサーバ値を反映
-          setallcountbatch(prev => {
-            const next = { ...prev };
-            const key = String(updateroomId);
-            if (!next[key]) next[key] = {};
-            next[key][date] = count;
-            return next;
-          });
-          if (String(activeRoom) === String(updateroomId)) {
-            setcountbatch(prev => ({ ...prev, [date]: count }));
-          }
-        });
+        socketRef.current?.emit("joinRoom", data.chatroomId);
 
         const countres = await fetch('/api/mycountbatch', {
           method: 'POST',
@@ -406,19 +497,6 @@ export default function App() {
         })
         const allcounts = await roomcountres.json();
         setallcountbatch(allcounts);
-
-
-        socket.on("newchat", (payload) => {
-          if (!payload || String(payload.chatroomId) !== String(chatroomIdRef.current)) {
-            return;
-          }
-          const chatdate = payload.date;
-          if (chatdate) {
-            setMemodate((prev) =>
-              prev.includes(chatdate) ? prev : [...prev, chatdate]
-            );
-          }
-        });
       } catch (e) {
         console.error("初期化エラー:", e);
       }
@@ -476,8 +554,9 @@ export default function App() {
         onOpenRoomDetails={() => setRoomdetails(true)}
         onOpenMemberModal={() => setmembermodal(true)}
         onGoPrivateCalendar={() => { window.location.href = "/privatecalendar"; }}
-        onSelectChatroom={(id) => { selectChatroom(id); setlistorcalendar("calendar"); }}
+        onSelectChatroom={(chat) => { handleselectchatroom(chat); }}
         onOpenNewChatModal={() => setNewChatModalOpen(true)}
+        roomActionsDisabled={notentermodal}
       />
 
       {Roomdetails && (
@@ -670,45 +749,54 @@ export default function App() {
             onOpenFriendModal={() => setFriendModalOpen(true)}
           />
 
-          <ChatCalendar
+          {notentermodal ? (
+            <div className="join-screen">
+              <h2>{enteringchatid?.chatid}に参加しますか</h2>
+              <div className="join-actions">
+                <button type="button" onClick={handleEntering}>参加します</button>
+                <button type="button" onClick={handleNotEntering}>参加しません</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <ChatCalendar
+                memodate={memodate}
+                onDateClick={(dateStr) => {
+                  setSelectedDate(dateStr);
+                  setcountbatch((count) => {
+                    const updated = { ...count };
+                    updated[dateStr] = 0;
+                    return updated;
+                  });
+                  setallcountbatch(prev => {
+                    const prevcount = { ...prev };
+                    const key = String(chatroomId);
+                    if (!prevcount[key]) prevcount[key] = {};
+                    prevcount[key][dateStr] = 0;
+                    return prevcount;
+                  });
+                  fetch('/api/deletecount', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatroomId, date: dateStr }),
+                  })
+                }}
+                startDate={calendarStartDate}
+                countbatch={countbatch || {}}
+              />
 
-            memodate={memodate}
-            onDateClick={(dateStr) => {
-              setSelectedDate(dateStr);
-              setcountbatch((count) => {
-                const updated = { ...count };
-                updated[dateStr] = 0;
-                return updated;
-              });
-              setallcountbatch(prev => {
-                const prevcount = { ...prev };
-                const key = String(chatroomId);
-                if (!prevcount[key]) prevcount[key] = {};
-                prevcount[key][dateStr] = 0;
-                return prevcount;
-              });
-              fetch('/api/deletecount', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatroomId, date: dateStr }),
-              })
-            }}
-
-            startDate={calendarStartDate}
-            countbatch={countbatch || {}}
-          />
-
-          {socketReady && selectedDate && chatroomId && !isClosing && (
-            <ChatModal
-              socket={socketRef.current}
-              roomId={chatroomId}
-              selectedDate={selectedDate}
-              closeModal={handleCloseModal}
-              myEmail={myEmail}
-              myrole={myrole}
-              authorityOn={authorityOn}
-            />
-
+              {socketReady && selectedDate && chatroomId && !isClosing && (
+                <ChatModal
+                  socket={socketRef.current}
+                  roomId={chatroomId}
+                  selectedDate={selectedDate}
+                  closeModal={handleCloseModal}
+                  myEmail={myEmail}
+                  myrole={myrole}
+                  authorityOn={authorityOn}
+                />
+              )}
+            </>
           )}
         </div>
       </main>

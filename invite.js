@@ -96,18 +96,13 @@ function registerInviteRoutes({
       });
       if (exists) return res.status(200).json({ ok: false, reason: 'already' });
       await prisma.chatmember.create({
-        data: { chatroomId, userId: target.id },
+        data: { chatroomId, userId: target.id, enter: false },
       });
       const members = await prisma.chatmember.findMany({
         where: { chatroomId },
         include: { user: { select: { username: true, email: true } } },
       });
-      const participants = members.map(m => ({
-        name: m.user.username,
-        email: m.user.email,
-        role: m.role,
-      }));
-      io.to(chatroomId).emit('participants', { participants });
+
       io.to(target.id).emit('invitelist', { chatid: room.chatid, id: room.id });
       return res.json({ ok: true });
     } catch (e) {

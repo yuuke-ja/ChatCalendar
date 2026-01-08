@@ -86,6 +86,13 @@
   background: linear-gradient(90deg, rgba(212, 233, 227, 0.95), rgba(198, 225, 218, 0.95));
 }
 
+.sidebar-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
 .sidebar-chatlist-body {
   margin-top: 4px;
   display: flex;
@@ -123,6 +130,10 @@
 .sidebar-chat-button.is-active .chatroombatch {
   background: rgba(255, 255, 255, 0.95);
   color: #2c7be5;
+}
+.sidebar-chat-button.enterlist {
+  background: #FFF4E5;
+  color: #e2901b;
 }
 
 .sidebar-chat-name {

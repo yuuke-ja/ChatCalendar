@@ -9,7 +9,8 @@ export default function Sidebar({
   onOpenMemberModal,
   onGoPrivateCalendar,
   onSelectChatroom,
-  onOpenNewChatModal
+  onOpenNewChatModal,
+  roomActionsDisabled = false
 }) {
   return (
     <aside className="sidebar">
@@ -19,8 +20,8 @@ export default function Sidebar({
           <span className="sidebar-subtext">情報とマイカレンダー</span>
         </div>
         <div className="sidebar-action-group">
-          <button className="sidebar-action-button" onClick={onOpenRoomDetails}>ルーム詳細</button>
-          <button className="sidebar-action-button" onClick={onOpenMemberModal}>
+          <button className="sidebar-action-button" onClick={onOpenRoomDetails} disabled={roomActionsDisabled}>ルーム詳細</button>
+          <button className="sidebar-action-button" onClick={onOpenMemberModal} disabled={roomActionsDisabled}>
             参加人数: {participantsCount}人
           </button>
           <button type="button" className="sidebar-action-button sidebar-action-link" onClick={onGoPrivateCalendar}>マイカレンダー</button>
@@ -39,8 +40,8 @@ export default function Sidebar({
             return (
               <button
                 key={chat.id}
-                className={`sidebar-chat-button${chat.id === chatroomId ? " is-active" : ""}`}
-                onClick={() => onSelectChatroom(chat.id)}
+                className={`sidebar-chat-button${chat.id === chatroomId ? " is-active" : chat.enter === false ? " enterlist" : ""}`}
+                onClick={() => onSelectChatroom(chat)}
               >
                 <span className="sidebar-chat-name">{chat.chatid}</span>
                 {roomcount > 0 && <span className="chatroombatch">{roomcount}</span>}

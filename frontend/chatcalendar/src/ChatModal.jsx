@@ -235,6 +235,15 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
     (async () => {
       try {
         const res = await fetch(`/getchat?date=${selectedDate}&roomId=${encodeURIComponent(roomId)}`);
+        if (res.status === 403) {
+          alert("このルームには参加していません");
+          closeModal();
+          return;
+        }
+        if (!res.ok) {
+          console.error("チャット取得失敗:", res.status);
+          return;
+        }
         const { chat } = await res.json();
         scrollBehaviorRef.current = "auto";
         setChatList(prev => {

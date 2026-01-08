@@ -717,6 +717,11 @@ a{ color:black; text-decoration:none; }
   color: #2c7be5;
 }
 
+.sidebar-chat-button.enterlist {
+  background: #FFF4E5;
+  color: #e2901b;
+}
+
 .sidebar-chat-name {
   flex: 1 1 auto;
   overflow: hidden;

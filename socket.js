@@ -15,17 +15,23 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
   io.on('connection', async (socket) => {
     console.log('新しいSocket接続:', socket.id);
     const session = socket.request.session;
-
-    const email = session.logined;
     if (!session || !session.logined) {
       console.log('セッションなし、またはログインしていません');
       return;
     }
+    const email = session.useremail || session.logined;
 
     console.log('セッションあり、ログインユーザー:', session.logined);
     console.log('ユーザー接続');
-    socket.on('joinRoom', (chatroomid) => {
+    socket.on('joinRoom', async (chatroomid) => {
       console.log(`Socket ${socket.id} joined room ${chatroomid}`);
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return;
+      const member = await prisma.chatmember.findFirst({
+        where: { chatroomId: chatroomid, userId: user.id, enter: true },
+      });
+      if (!member) return; // 未参加は join させない
+
       if (socket.deleteRoom) {
         socket.leave(socket.deleteRoom);
       }
@@ -35,6 +41,12 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     });
     socket.on('get-chat-date', async (data) => {
       const chatroomid = data.chatroomid;
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return;
+      const member = await prisma.chatmember.findFirst({
+        where: { chatroomId: chatroomid, userId: user.id, enter: true },
+      });
+      if (!member) return;
       console.log('get-chat-date 受信 chatroomid:', chatroomid);
       console.log('typeof chatroomid:', typeof chatroomid);
       const chatrooms = await prisma.chatroom.findUnique({ where: { id: chatroomid } });
@@ -150,6 +162,13 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           socket.emit('送信失敗', 'チャットルームが見つかりません');
           return;
         }
+        const member = await prisma.chatmember.findFirst({
+          where: { chatroomId: roomId, userId: user.id, enter: true },
+        });
+        if (!member) {
+          socket.emit('送信失敗', 'チャットルームに参加していません');
+          return;
+        }
         console.log(`ユーザ情報${user}`);
 
         const saved = await prisma.chatmessage.create({
@@ -177,6 +196,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         const otherMembers = await prisma.chatmember.findMany({
           where: {
             chatroomId: roomId,
+            enter: true,
             NOT: { userId: user.id },
           },
           select: { userId: true },
@@ -480,6 +500,37 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         }
       }
     });
+    socket.on('enterning-chatroom', async ({ chatroomId }, cb) => {
+      try {
+        const email = socket.request.session?.useremail || socket.request.session?.logined;
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+          socket.emit('error-message', { message: 'ログインしてください' });
+          cb?.({ ok: false, message: 'ログインしてください' });
+          return;
+        }
+        await prisma.chatmember.update({
+          where: { chatroomId_userId: { chatroomId, userId: user.id } },
+          data: { enter: true },
+        });
+        const members = await prisma.chatmember.findMany({
+          where: { chatroomId, enter: true },
+          include: { user: { select: { username: true, email: true } } },
+        });
+        const participants = members.map(m => ({
+          name: m.user.username,
+          email: m.user.email,
+          role: m.role,
+        }));
+        io.to(chatroomId).emit('participants', { participants });
+        cb?.({ ok: true });
+      } catch (e) {
+        console.error('enterning-chatroom error:', e);
+        socket.emit('error-message', { message: 'サーバーエラー' });
+        cb?.({ ok: false, message: 'サーバーエラー' });
+      }
+    });
+
 
     socket.on('delete-member', async ({ chatroomId, userEmail }) => {
       try {
