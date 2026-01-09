@@ -33,6 +33,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
   const [googleAccessToken, setgoogleAccessToken] = useState("")
   const [googleRefreshToken, setgoogleRefreshToken] = useState("")
   const [uploadImage, setUploadImage] = useState(false);
+  const [Loading, setLoading] = useState(false);
 
 
   const pickerRef = useRef(null);
@@ -232,6 +233,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
   useEffect(() => {
     if (!selectedDate || !roomId) return;
+    setLoading(true);
     (async () => {
       try {
         const res = await fetch(`/getchat?date=${selectedDate}&roomId=${encodeURIComponent(roomId)}`);
@@ -268,7 +270,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
         initialLoadRef.current = false;
       } catch (e) {
         console.error("チャット取得失敗:", e);
-      }
+      } finally { setLoading(false); }
     })();
   }, [selectedDate, roomId]);
   useEffect(() => {
@@ -554,6 +556,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
 
       <div id="chatwrite" className="chat-history" ref={chatHistoryRef}>
+        {Loading && <div className="loading"></div>}
         {chatList === null ? null : chatList.length > 0 ? (
           chatList.map((c) => {
             const isDeleted = c.deleted;
