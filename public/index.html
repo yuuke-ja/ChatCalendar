@@ -149,6 +149,14 @@
             text-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
+	        .logo-icon {
+	            width: 40px;
+	            height: 40px;
+	            flex: 0 0 auto;
+	            object-fit: contain;
+                border-radius: 8px;
+	        }
+
         .nav-links {
             display: flex;
             gap: 40px;
@@ -666,7 +674,8 @@
     <header class="navbar">
         <div class="container">
             <a href="/" class="logo">
-                <i class="fas fa-calendar-alt"></i> ChatCalendar
+                <img src="/images/chatcalendar_512_white.png" alt="" class="logo-icon" aria-hidden="true">
+                <span>ChatCalendar</span>
             </a>
             <nav class="nav-links">
                 <a href="/tutorial">使い方</a>

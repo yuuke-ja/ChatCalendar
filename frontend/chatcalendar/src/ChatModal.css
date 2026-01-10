@@ -376,6 +376,32 @@
   padding: 10px;
 }
 
+.image-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.image-menu {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2;
+}
+
+.image-menu button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 10px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #777;
+  border-radius: 8px;
+}
+
 .reactions-area {
   display: block;
   margin: 3px 0;

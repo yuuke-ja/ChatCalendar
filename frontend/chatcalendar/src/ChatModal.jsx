@@ -38,6 +38,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
   const pickerRef = useRef(null);
   const scrollBehaviorRef = useRef("auto");
+  const autoScrollRef = useRef(true);
   const initialLoadRef = useRef(true);
 
   const [showAllReactions, setShowAllReactions] = useState(null);
@@ -147,15 +148,26 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       el.scrollTop = top;
     }
     scrollBehaviorRef.current = "auto";
+    autoScrollRef.current = true;
   };
   // メッセージ一覧が更新されたら常に下までスクロール
   useLayoutEffect(() => {
-    scrollToBottom();
+    if (autoScrollRef.current) {
+      scrollToBottom();
+    }
   }, [chatList]);
 
   useEffect(() => {
     initialLoadRef.current = true;
+    autoScrollRef.current = true;
   }, [selectedDate, roomId]);
+
+  const handleChatScroll = () => {
+    const el = chatHistoryRef.current;
+    if (!el) return;
+    const threshold = 24;
+    autoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  };
 
   //外部クリックでメニューを閉じる
   useEffect(() => {
@@ -555,7 +567,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
 
 
 
-      <div id="chatwrite" className="chat-history" ref={chatHistoryRef}>
+      <div id="chatwrite" className="chat-history" ref={chatHistoryRef} onScroll={handleChatScroll}>
         {Loading && <div className="loading"></div>}
         {chatList === null ? null : chatList.length > 0 ? (
           chatList.map((c) => {
@@ -824,31 +836,37 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                 {imagedelete && (<div className="deleted-message">{c.user.username}さんが画像を削除しました。</div>)}
                 {hasImage && (
                   <>
-                    <img
-                      src={c.imageUrl}
-                      alt="投稿画像"
-                      className="chat-image"
-                      onClick={() => setscreenImage(c.imageUrl)}
-                      onContextMenu={(e) => openImageMenu(c, e)}
-                      onPointerDown={(e) => startLongPress(e, () => openImageMenu(c, e))}
-                      onPointerUp={cancelLongPress}
-                      onPointerLeave={cancelLongPress}
-                      onPointerMove={cancelLongPress}
-                      onPointerCancel={cancelLongPress}
-                    />
-                    {imageDeleteTarget && imageDeleteTarget.id === c.id && (
-                      <div className="image-menu">
-                        <button
-                          onClick={() => {
-                            if (!window.confirm("この画像を削除しますか？")) return;
-                            socket.emit("delete-message", { messageId: imageDeleteTarget.realId || imageDeleteTarget.id, roomId, type: "image", email: myEmail });
-                            setImageDeleteTarget(null);
-                          }}
-                        >
-                          画像を削除
-                        </button>
-                      </div>
-                    )}
+                    <div className="image-wrap">
+                      <img
+                        src={c.imageUrl}
+                        alt="投稿画像"
+                        className="chat-image"
+                        onLoad={() => {
+                          if (!autoScrollRef.current) return;
+                          scrollToBottom();
+                        }}
+                        onClick={() => setscreenImage(c.imageUrl)}
+                        onContextMenu={(e) => openImageMenu(c, e)}
+                        onPointerDown={(e) => startLongPress(e, () => openImageMenu(c, e))}
+                        onPointerUp={cancelLongPress}
+                        onPointerLeave={cancelLongPress}
+                        onPointerMove={cancelLongPress}
+                        onPointerCancel={cancelLongPress}
+                      />
+                      {imageDeleteTarget && imageDeleteTarget.id === c.id && (
+                        <div className="image-menu">
+                          <button
+                            onClick={() => {
+                              if (!window.confirm("この画像を削除しますか？")) return;
+                              socket.emit("delete-message", { messageId: imageDeleteTarget.realId || imageDeleteTarget.id, roomId, type: "image", email: myEmail });
+                              setImageDeleteTarget(null);
+                            }}
+                          >
+                            画像を削除
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className="reactions-area">
                       {(() => {
                         const filterimagereactions = (c.reactions || []).filter(r => r.type === "image");
