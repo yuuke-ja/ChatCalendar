@@ -220,53 +220,50 @@ export default function App() {
     }
     const controller = new AbortController();
     fetchAbortRef.current = controller;
-    let res;
     try {
-      res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`, {
-        signal: controller.signal,
-      });
-    } catch (e) {
-      if (e.name === "AbortError") return;
-      throw e;
-    }
-    if (res.status === 403) {
-      const pendingChat = chatList.find(c => c.id === chatId);
-      setenteringchatid(pendingChat || { id: chatId, chatid: "このルーム" });
-      setnotentermodal(true);
-      return;
-    }
-    if (!res.ok || res.redirected) {
-      window.location.href = res.url || '/privatecalendar';
-      return;
-    }
-    const data = await res.json();
-    // 他の選択リクエストに追い抜かれていたら破棄
-    if (seq !== pendingRequestRef.current) return;
+      const [res1, res2] = await Promise.all([
+        fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`, {
+          signal: controller.signal,
+        }),
+        fetch('/api/mycountbatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatroomId: chatId }),
+          signal: controller.signal,
+        }),
+      ])
+      if (res1.status === 403) {
+        const pendingChat = chatList.find(c => c.id === chatId);
+        setenteringchatid(pendingChat || { id: chatId, chatid: "このルーム" });
+        setnotentermodal(true);
+        return;
+      }
+      if (!res1.ok || res1.redirected) {
+        window.location.href = res1.url || '/privatecalendar';
+        return;
+      }
+      const data = await res1.json();
+      // 他の選択リクエストに追い抜かれていたら破棄
+      if (seq !== pendingRequestRef.current) return;
 
-    setChatroomId(data.chatroomId);
-    setAuthorityOn(data.authority)
-    setinvitationauthorityOn(data.invitationauthority)
-    setChatroomName(data.chatroomname);
-    setMyEmail(data.useremail);
-    setMyUsername(data.username);
-    setMemodate(data.memodate || []);
-    setparticipants(data.participants || [])
-    setSelectedDate(null);
-    socketRef.current?.emit("joinRoom", data.chatroomId);
-    let countRes;
-    try {
-      countRes = await fetch('/api/mycountbatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatroomId: data.chatroomId }),
-        signal: controller.signal,
-      });
+      setChatroomId(data.chatroomId);
+      setAuthorityOn(data.authority)
+      setinvitationauthorityOn(data.invitationauthority)
+      setChatroomName(data.chatroomname);
+      setMyEmail(data.useremail);
+      setMyUsername(data.username);
+      setMemodate(data.memodate || []);
+      setparticipants(data.participants || [])
+      setSelectedDate(null);
+      socketRef.current?.emit("joinRoom", data.chatroomId);
+      if (res2.ok) {
+        const counts = await res2.json();
+        setcountbatch(counts);
+      }
     } catch (e) {
       if (e.name === "AbortError") return;
       throw e;
     }
-    const counts = await countRes.json();
-    setcountbatch(counts);
   };
 
 
@@ -318,12 +315,12 @@ export default function App() {
             setMyUsername(username)
           })
 
-        socket.on("newchatlist", (chat) => {
-          setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? true }]);
-        });
-        socket.on("invitelist", (chat) => {
-          setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? false }]);
-        })
+          socket.on("newchatlist", (chat) => {
+            setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? true }]);
+          });
+          socket.on("invitelist", (chat) => {
+            setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? false }]);
+          })
           socket.on("participants", ({ participants }) => {
             setparticipants(participants || []);
           });
@@ -459,18 +456,30 @@ export default function App() {
         }
         const urlRoomId = new URLSearchParams(window.location.search).get("roomId");
         if (!urlRoomId) return;
-        const res = await fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(urlRoomId)}`);
-        if (res.status === 403) {
+
+        const infoP = fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(urlRoomId)}`);
+        const countP = fetch('/api/mycountbatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatroomId: urlRoomId })
+        });
+        const allCountP = fetch('/api/mycountbatch/all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const [res1, res2, res3] = await Promise.all([infoP, countP, allCountP]);
+        if (res1.status === 403) {
           setenteringchatid({ id: urlRoomId, chatid: "このルーム" });
           setChatroomId(urlRoomId);
           setnotentermodal(true);
           return;
         }
-        if (!res.ok || res.redirected) {
-          window.location.href = res.url || '/privatecalendar';
+        if (!res1.ok || res1.redirected) {
+          window.location.href = res1.url || '/privatecalendar';
           return;
         }
-        const data = await res.json();
+        const data = await res1.json();
         if (!mounted) return;
 
         setChatroomId(data.chatroomId);
@@ -484,19 +493,14 @@ export default function App() {
 
         socketRef.current?.emit("joinRoom", data.chatroomId);
 
-        const countres = await fetch('/api/mycountbatch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chatroomId: data.chatroomId })
-        });
-        const counts = await countres.json();
-        setcountbatch(counts);
-        const roomcountres = await fetch('/api/mycountbatch/all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-        const allcounts = await roomcountres.json();
-        setallcountbatch(allcounts);
+        if (res2.ok && mounted) {
+          const counts = await res2.json();
+          if (mounted) setcountbatch(counts);
+        }
+        if (res3.ok && mounted) {
+          const allcounts = await res3.json();
+          if (mounted) setallcountbatch(allcounts);
+        }
       } catch (e) {
         console.error("初期化エラー:", e);
       }
