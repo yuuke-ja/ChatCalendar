@@ -94,10 +94,46 @@ a {
   transition: transform 0.3s ease;
 }
 
+.chatcalendar-page {
+  position: relative;
+}
+
 .chatcalendar-page.closing-modal #chatcalendar {
   width: 58vw;
   margin: 0 auto;
   transition: width 0.3s ease, margin-left 0.3s ease;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+}
+
+.loading-dots {
+  display: inline-block;
+  overflow: hidden;
+  width: 0ch;
+  animation: loadingDots 1s steps(4, end) infinite;
+}
+
+@keyframes loadingDots {
+  to {
+    width: 3ch;
+  }
 }
 
 button {

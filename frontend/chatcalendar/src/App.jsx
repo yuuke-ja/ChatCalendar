@@ -38,6 +38,7 @@ export default function App() {
   const [listorcalendar, setlistorcalendar] = useState("calendar");
   const [notentermodal, setnotentermodal] = useState(false);
   const [enteringchatid, setenteringchatid] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [calendarStartDate, setCalendarStartDate] = useState(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
@@ -70,6 +71,14 @@ export default function App() {
     ? (myrole === "leader" || myrole === "subleader")
     : true;
   const fetchAbortRef = useRef(null);
+  //リクエストの中断
+  const cancelPendingSelect = () => {
+    pendingRequestRef.current += 1;
+    if (fetchAbortRef.current) {
+      fetchAbortRef.current.abort();
+      fetchAbortRef.current = null;
+    }
+  };
   const getRoleText = (role) => {
     switch (role) {
       case 'leader':
@@ -149,8 +158,9 @@ export default function App() {
   };
   const handleselectchatroom = (chat) => {
     if (!chat) return;
-    setChatroomId(chat.id);
     if (chat.enter === false) {
+      cancelPendingSelect();
+      setChatroomId(chat.id);
       window.history.replaceState(null, "", `/chatcalendar?roomId=${chat.id}`);
       setSelectedDate(null);
       setnotentermodal(true);
@@ -160,7 +170,6 @@ export default function App() {
     if (chat.enter === true) {
       setnotentermodal(false);
       setenteringchatid(null);
-      setChatroomId(chat.id);
     }
     selectChatroom(chat.id);
     setlistorcalendar("calendar");
@@ -220,6 +229,7 @@ export default function App() {
     }
     const controller = new AbortController();
     fetchAbortRef.current = controller;
+    setLoading(true);
     try {
       const [res1, res2] = await Promise.all([
         fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`, {
@@ -232,6 +242,8 @@ export default function App() {
           signal: controller.signal,
         }),
       ])
+      //古かったら終了
+      if (seq !== pendingRequestRef.current) return;
       if (res1.status === 403) {
         const pendingChat = chatList.find(c => c.id === chatId);
         setenteringchatid(pendingChat || { id: chatId, chatid: "このルーム" });
@@ -263,6 +275,8 @@ export default function App() {
     } catch (e) {
       if (e.name === "AbortError") return;
       throw e;
+    } finally {
+      setLoading(false)
     }
   };
 
@@ -456,7 +470,7 @@ export default function App() {
         }
         const urlRoomId = new URLSearchParams(window.location.search).get("roomId");
         if (!urlRoomId) return;
-
+        setLoading(true);
         const infoP = fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(urlRoomId)}`);
         const countP = fetch('/api/mycountbatch', {
           method: 'POST',
@@ -503,6 +517,8 @@ export default function App() {
         }
       } catch (e) {
         console.error("初期化エラー:", e);
+      } finally {
+        setLoading(false);
       }
     })();
 
@@ -763,6 +779,13 @@ export default function App() {
             </div>
           ) : (
             <>
+              {loading && (
+                <div className="loading-overlay">
+                  <div className="loading-spinner">
+                    更新中<span className="loading-dots">...</span>
+                  </div>
+                </div>
+              )}
               <ChatCalendar
                 memodate={memodate}
                 onDateClick={(dateStr) => {
