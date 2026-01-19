@@ -166,6 +166,7 @@ export default function App() {
       setSelectedDate(null);
       setnotentermodal(true);
       setenteringchatid(chat);
+      setlistorcalendar("calendar");
       return;
     }
     if (chat.enter === true) {
@@ -249,6 +250,7 @@ export default function App() {
         const pendingChat = chatList.find(c => c.id === chatId);
         setenteringchatid(pendingChat || { id: chatId, chatid: "このルーム" });
         setnotentermodal(true);
+        setlistorcalendar("calendar")
         return;
       }
       if (!res1.ok || res1.redirected) {
