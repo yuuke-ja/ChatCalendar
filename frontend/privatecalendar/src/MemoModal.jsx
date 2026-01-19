@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { fetchWithCsrf } from "./getcsrf";
+
 
 export default function MemoModal({ selectedDate, closeModal }) {
   const [memoList, setMemoList] = useState([]);
@@ -42,7 +44,7 @@ export default function MemoModal({ selectedDate, closeModal }) {
       .map(m => m.trim())
       .filter(m => m.length > 0);
 
-    const res = await fetch("/save-memo", {
+    const res = await fetchWithCsrf("/save-memo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date: selectedDate, memoList: filtered }),

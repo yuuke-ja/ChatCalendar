@@ -36,6 +36,7 @@ html(lang='ja')
     h1 認証コードを入力してください
   
     form(method="POST" action="/verify")
+      input(type="hidden" name="_csrf" value=csrfToken)
       label(for="code") 認証コード
       br
       input(type='text' name="code" required)

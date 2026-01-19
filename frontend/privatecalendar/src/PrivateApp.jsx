@@ -4,7 +4,9 @@ import ChatCalendar from "./PrivateCalendar.jsx";
 import ChatModal from "./MemoModal.jsx";
 import FriendModal from "./FriendModal.jsx";
 import NewChatModal from "./NewChatModal.jsx";
+import { fetchWithCsrf } from "./getcsrf";
 import "./calendar.css";
+
 
 export default function App() {
   const [chatroomId, setChatroomId] = useState(null);
@@ -170,7 +172,7 @@ export default function App() {
 
         async function fetchAllCountBatch() {
           try {
-            const res = await fetch('/api/mycountbatch/all', {
+            const res = await fetchWithCsrf('/api/mycountbatch/all', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' }
             });

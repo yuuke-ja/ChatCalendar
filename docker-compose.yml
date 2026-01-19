@@ -8,7 +8,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      - /app/node_modules
+      - node_modules:/app/node_modules
     depends_on:
       - db
 
@@ -21,4 +21,5 @@ services:
       TZ: "Asia/Tokyo"
     volumes:
       - ../carender-db:/var/lib/postgresql/data
-
+volumes:
+  node_modules:

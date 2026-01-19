@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { fetchWithCsrf } from "./getcsrf";
 import "./InviteModal.css";
 
 export default function InviteModal({ onClose, participants = [], myEmail, myUsername, chatroomName, chatroomId }) {
@@ -46,7 +47,7 @@ export default function InviteModal({ onClose, participants = [], myEmail, myUse
 
     try {
       setInviting(prev => ({ ...prev, [email]: true }));
-      const res = await fetch(`/api/invite?roomId=${encodeURIComponent(chatroomId)}`, {
+      const res = await fetchWithCsrf(`/api/invite?roomId=${encodeURIComponent(chatroomId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
@@ -58,7 +59,7 @@ export default function InviteModal({ onClose, participants = [], myEmail, myUse
         toast("⚠️ すでに参加しています");
       } else if (data?.reason === "invalid_email") { toast("正しいメールアドレスを入力してください") } else if (data?.reason === "notfound") {
         if (!window.confirm("未登録なのでメールで招待リンクを送りますか？")) return;
-        await fetch("/api/invite-email", {
+        await fetchWithCsrf("/api/invite-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email, myUsername: myUsername, chatroomName: chatroomName, chatroomId: chatroomId })

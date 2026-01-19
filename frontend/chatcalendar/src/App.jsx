@@ -9,6 +9,7 @@ import MemberModal from "./MemberModal.jsx";
 import Sidebar from "./Sidebar.jsx";
 import RoomDetailsModal from "./RoomDetailsModal.jsx";
 import Header from "./Header.jsx";
+import { fetchWithCsrf } from "./getcsrf";
 import "./App.css";
 
 export default function App() {
@@ -197,7 +198,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch("/api/chatmember/decline", {
+      const res = await fetchWithCsrf("/api/chatmember/decline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chatroomId: target.id }),
@@ -235,7 +236,7 @@ export default function App() {
         fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(chatId)}`, {
           signal: controller.signal,
         }),
-        fetch('/api/mycountbatch', {
+        fetchWithCsrf('/api/mycountbatch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chatroomId: chatId }),
@@ -435,7 +436,7 @@ export default function App() {
                 next[key][date] = 0;
                 return next;
               });
-              fetch('/api/deletecount', {
+              fetchWithCsrf('/api/deletecount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chatroomId: updateroomId, date })
@@ -472,12 +473,12 @@ export default function App() {
         if (!urlRoomId) return;
         setLoading(true);
         const infoP = fetch(`/api/chatcalendar-info?roomId=${encodeURIComponent(urlRoomId)}`);
-        const countP = fetch('/api/mycountbatch', {
+        const countP = fetchWithCsrf('/api/mycountbatch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chatroomId: urlRoomId })
         });
-        const allCountP = fetch('/api/mycountbatch/all', {
+        const allCountP = fetchWithCsrf('/api/mycountbatch/all', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -643,7 +644,7 @@ export default function App() {
                       return prevcount;
                     });
 
-                    fetch("/api/deletecount", {
+                    fetchWithCsrf("/api/deletecount", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ chatroomId, date: d }),
@@ -802,7 +803,7 @@ export default function App() {
                     prevcount[key][dateStr] = 0;
                     return prevcount;
                   });
-                  fetch('/api/deletecount', {
+                  fetchWithCsrf('/api/deletecount', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chatroomId, date: dateStr }),

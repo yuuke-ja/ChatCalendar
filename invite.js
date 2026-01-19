@@ -43,35 +43,6 @@ function registerInviteRoutes({
     res.redirect('/login');
   });
 
-  app.get('/userinvite', async (req, res) => {
-    try {
-      const email = req.session.logined;
-      const user = await prisma.user.findUnique({ where: { email } });
-      const user1 = await prisma.friend.findMany({
-        where: {
-          user1Id: user.id,
-        },
-        include: { user2: true },
-      });
-      const user2 = await prisma.friend.findMany({
-        where: {
-          user2Id: user.id,
-        },
-        include: { user1: true },
-      });
-      const friendlist1 = user1.map(f => ({ username: f.user2.username, email: f.user2.email }));
-      const friendlist2 = user2.map(f => ({ username: f.user1.username, email: f.user1.email }));
-      const friendlist = [...friendlist1, ...friendlist2];
-      const invite = req.query.invite === 'true';
-      const notinvite = req.query.invite === 'false';
-      const reason = req.query.reason || null;
-
-      res.render('userinvite', { invite, notinvite, reason, friendlist });
-    } catch (error) {
-      console.error('DBエラー:', error);
-    }
-  });
-
   //招待真
   app.post('/api/invite', logincheck, async (req, res) => {
     try {

@@ -9,8 +9,9 @@ const server =http.createServer(app);
 const io =require("socket.io")(server);
 const session = require('express-session');
 const crypto = require('crypto');
-
-
+const csrf = require('csurf');   
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
 
 const pug = require('pug');
@@ -66,6 +67,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sessionsocket); 
 app.use(passport.initialize());
 app.use(passport.session());
+const csrfProtection = csrf({ cookie:{
+  httpOnly:true,
+  secure:isProduction,
+  sameSite:'lax'
+} });
+app.use(csrfProtection);
 const registerGoogleRoutes = require('./googleRoutes');
 const registerAuthRoutes = require('./auth');
 const registerInviteRoutes = require('./invite');
@@ -208,6 +215,17 @@ async function loginchatcheck(req, res, next) {
   next();
 }
 
+
+app.get("/getcsrf", (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+app.use((req, res, next) => {
+  if (req.csrfToken) {
+    res.locals.csrfToken = req.csrfToken();
+  }
+  next();
+});
+
 function verifiedcheck(req,res,next){
   if(!req.session.userId){
     res.redirect('/newuser')
@@ -298,6 +316,10 @@ registerSocketHandlers({
   io,
   prisma,
   normalizeDate,
+});
+app.use((err, req, res, next) => {
+  if (err.code !== "EBADCSRFTOKEN") return next(err);
+  return res.status(403).json({ message: "CSRF token invalid" });
 });
 
 app.get('/', (req, res) => {

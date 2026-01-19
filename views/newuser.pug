@@ -94,6 +94,7 @@ html(lang='ja')
     .register-container
       h1 アカウント作成
       form#signupForm(method="POST" action="/newuser")
+        input(type="hidden" name="_csrf" value=csrfToken)
         label(for="email") メールアドレス
         input(type='email' name="email" required)
         label(for="username") ユーザー名

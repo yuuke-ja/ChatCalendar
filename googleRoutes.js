@@ -287,7 +287,7 @@ function registerGoogleRoutes({
       refresh_token: user.googleRefreshToken,
     });
     const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-    if (!user.googleAccessToken || !user.googleRefreshToken) {
+    if (!user || !user.googleAccessToken || !user.googleRefreshToken) {
       return res.status(400).json({ success: false, message: 'Google連携が必要です' });
     }
     if (!allday && !startTime ) {
@@ -314,10 +314,18 @@ function registerGoogleRoutes({
       });
       res.json({ success: true, link: response.data.htmlLink });
     } catch (error) {
-      console.error('Error creating event:', error);
-      res
-        .status(500)
-        .json({ success: false, message: 'Googleカレンダーへの登録に失敗しました' });
+      const errorCode = error?.response?.data?.error;
+      if (errorCode === 'invalid_grant') {
+        return res.status(401).json({
+          success: false,
+          message: 'Google連携が切れています。再連携してください。',
+        });
+      }
+      console.error('Error creating event:', error?.message || errorCode);
+      return res.status(500).json({
+        success: false,
+        message: 'Googleカレンダーへの登録に失敗しました',
+      });
     }
   });
 

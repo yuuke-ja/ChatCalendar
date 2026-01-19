@@ -124,6 +124,7 @@ html(lang='ja')
     img(src="/images/rogo.png" alt="ChatCalendarロゴ" style="width:70px;height:70px;margin-bottom:10px;")
     h2 ログイン
     form(method="POST" action="/login")
+      input(type="hidden" name="_csrf" value=csrfToken)
       label(for="email") メールアドレス
       input(type='email' name="email" required)
       label(for="password") パスワード

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
+import { fetchWithCsrf } from "./getcsrf";
 import "./ChatModal.css";
 
 export default function ChatModal({ socket, roomId, selectedDate, myEmail, closeModal, myrole, authorityOn }) {
@@ -436,7 +437,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
       const formData = new FormData();
       formData.append("image", imageFile);
       try {
-        const res = await fetch("/upload-image", { method: "POST", body: formData });
+        const res = await fetchWithCsrf("/upload-image", { method: "POST", body: formData });
         const result = await res.json();
         imageUrl = result.imageUrl;
       } catch (err) {
@@ -646,7 +647,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                               if (!deleteTarget.content) return;
                               const date = selectedDate;
                               try {
-                                await fetch("/add-memo", {
+                                await fetchWithCsrf("/add-memo", {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ date: date, memoList: [deleteTarget.content] }),
@@ -1131,7 +1132,7 @@ export default function ChatModal({ socket, roomId, selectedDate, myEmail, close
                     return;
                   }
                   try {
-                    const res = await fetch("/save-googlecalendar", {
+                    const res = await fetchWithCsrf("/save-googlecalendar", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({

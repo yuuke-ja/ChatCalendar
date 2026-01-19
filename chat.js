@@ -13,10 +13,6 @@ function registerChatRoutes({
   loginchatcheck,
   normalizeDate,
 }) {
-  //プライベートカレンダー
-  app.get('/carender', logincheck, (req, res) => {
-    res.render('karennder');
-  });
   app.get('/get-date', async (req, res) => {
     try {
       const email = req.session.logined;
@@ -445,32 +441,6 @@ function registerChatRoutes({
     }
   });
 
-  app.get('/home', logincheck, async (req, res) => {
-    try {
-      const email = req.session.logined;
-      const user = await prisma.user.findUnique({ where: { email } });
-      const user1 = await prisma.friend.findMany({
-        where: {
-          user1Id: user.id,
-        },
-        include: { user2: true },
-      });
-      const user2 = await prisma.friend.findMany({
-        where: {
-          user2Id: user.id,
-        },
-        include: { user1: true },
-      });
-      const friendlist1 = user1.map(f => f.user2.username);
-      const friendlist2 = user2.map(f => f.user1.username);
-      const friendlist = [...friendlist1, ...friendlist2];
-
-      res.render('home', { friendlist });
-    } catch (error) {
-      console.error('getfriendエラー:', error);
-      res.status(500).send('フレンド取得失敗');
-    }
-  });
   app.get('/api/friends', logincheck, async (req, res) => {
     const email = req.session.logined;
     const user = await prisma.user.findUnique({ where: { email } });

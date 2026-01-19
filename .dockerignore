@@ -1,0 +1,16 @@
+.git
+.gitignore
+.DS_Store
+
+node_modules
+frontend/node_modules
+
+.env
+.env.*
+
+uploads
+carender-db
+
+*.log
+npm-debug.log
+yarn-error.log
