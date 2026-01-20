@@ -92,6 +92,10 @@ export default function App() {
         return role;
     }
   };
+  const chengechatlistview = () => {
+    setChatList(prev => [...prev].sort((a, b) => Number(a.enter) - Number(b.enter)));
+  }
+
   function chengeauthority() {
     const newVal = !authorityOn;
     setAuthorityOn(newVal);
@@ -336,7 +340,8 @@ export default function App() {
             setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? true }]);
           });
           socket.on("invitelist", (chat) => {
-            setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? false }]);
+            setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? false }]
+              .sort((a, b) => Number(a.enter) - Number(b.enter)));
           })
           socket.on("participants", ({ participants }) => {
             setparticipants(participants || []);

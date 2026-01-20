@@ -69,13 +69,17 @@ function registerChatRoutes({
       res.status(500).send('失敗');
     }
   });
-
+  //チャットリスト(ルーム)取得,未参加のルーム優先
   app.get('/api/enterchat', logincheck, async (req, res) => {
     const email = req.session.logined;
     const user = await prisma.user.findUnique({ where: { email } });
     const chatmembers = await prisma.chatmember.findMany({
       where: { userId: user.id, chatroom: { deleted: false } },
       include: { chatroom: true },
+      orderBy: [
+        { enter: 'asc' },
+        { id: 'asc' },
+      ],
     });
 
     const chatlist = chatmembers.map(cm => ({

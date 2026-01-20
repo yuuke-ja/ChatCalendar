@@ -142,8 +142,13 @@ export default function App() {
         socket.on("reconnect", (attempts) => console.log(`Reconnected after ${attempts} attempts`));
         socket.on("reconnect_failed", () => window.location.reload());
 
-        socket.on("newchatlist", (chat) => setChatList(prev => [...prev, chat]));
-        socket.on("invitelist", (chat) => setChatList(prev => [...prev, chat]));
+        socket.on("newchatlist", (chat) => {
+          setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? true }]);
+        });
+        socket.on("invitelist", (chat) => {
+          setChatList(prev => [...prev, { ...chat, enter: chat?.enter ?? false }]
+            .sort((a, b) => Number(a.enter) - Number(b.enter)));
+        });
         socket.on("newmemo", (newdate) => {
           setMemodate(prev => prev.includes(newdate) ? prev : [...prev, newdate]);
         });
