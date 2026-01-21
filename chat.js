@@ -78,6 +78,7 @@ function registerChatRoutes({
       include: { chatroom: true },
       orderBy: [
         { enter: 'asc' },
+        { lastOpenedAt: 'desc' },
         { id: 'asc' },
       ],
     });
@@ -217,6 +218,10 @@ function registerChatRoutes({
         ],
       },
       select: { date: true },
+    });
+    await prisma.chatmember.updateMany({
+      where: { chatroomId, userId: user.id },
+      data: { lastOpenedAt: new Date() },
     });
 
     const dates = chatss.map(post => {

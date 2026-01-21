@@ -348,6 +348,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
             chatroomId: chatroomdata.id,
             userId: user.id,
             role: 'leader',
+            lastOpenedAt: new Date(),
           },
         });
         io.to(user.id).emit('newchatlist', {
@@ -511,7 +512,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         }
         await prisma.chatmember.update({
           where: { chatroomId_userId: { chatroomId, userId: user.id } },
-          data: { enter: true },
+          data: { 
+            enter: true ,
+            lastOpenedAt: new Date(),
+          },
         });
         const members = await prisma.chatmember.findMany({
           where: { chatroomId, enter: true },

@@ -82,6 +82,7 @@ model Chatmember {
   userId     Int
   chatroomId String
   role       String   @default("member")
+  lastOpenedAt   DateTime?
   enter   Boolean @default(true)
   chatroom   Chatroom @relation(fields: [chatroomId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
