@@ -281,6 +281,7 @@ registerGoogleRoutes({
 
 registerAuthRoutes({
   app,
+  io,
   prisma,
   bcrypt,
   body,

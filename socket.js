@@ -15,20 +15,23 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
   io.on('connection', async (socket) => {
     console.log('新しいSocket接続:', socket.id);
     const session = socket.request.session;
-    if (!session || !session.logined) {
+    if (!session || !session.logined || !session.userid) {
       console.log('セッションなし、またはログインしていません');
       return;
     }
-    const email = session.useremail || session.logined;
+    const userId = session.userid;
+    socket.data.userId = userId;
 
     console.log('セッションあり、ログインユーザー:', session.logined);
     console.log('ユーザー接続');
+    socket.join(userId);
+    console.log(`userId: ${userId}`);
     socket.on('joinRoom', async (chatroomid) => {
       console.log(`Socket ${socket.id} joined room ${chatroomid}`);
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return;
+      const userId = socket.data.userId;
+      if (!userId) return;
       const member = await prisma.chatmember.findFirst({
-        where: { chatroomId: chatroomid, userId: user.id, enter: true },
+        where: { chatroomId: chatroomid, userId, enter: true },
       });
       if (!member) return; // 未参加は join させない
 
@@ -41,10 +44,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     });
     socket.on('get-chat-date', async (data) => {
       const chatroomid = data.chatroomid;
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return;
+      const userId = socket.data.userId;
+      if (!userId) return;
       const member = await prisma.chatmember.findFirst({
-        where: { chatroomId: chatroomid, userId: user.id, enter: true },
+        where: { chatroomId: chatroomid, userId, enter: true },
       });
       if (!member) return;
       console.log('get-chat-date 受信 chatroomid:', chatroomid);
@@ -82,23 +85,18 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         socket.emit('送信失敗');
       }
     });
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (user) {
-      socket.join(user.id);
-      console.log(`user.id: ${user.id}`);
-    }
-
     console.log('ユーザー接続2');
-    socket.on('savereaction', async ({ messageId, emoji, roomId, email, type }) => {
+    socket.on('savereaction', async ({ messageId, emoji, roomId, type }) => {
       try {
-        const user = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
-        if (!user) return;
-        console.log(`ユーザ${user}`);
-        console.log(`ユーザ${user.username}`);
+        const userId = socket.data.userId;
+        if (!userId) return;
+        const useremail = socket.request.session.useremail;
+        const username = socket.request.session.username;
+        console.log(`ユーザ${username}`);
         const check = await prisma.reaction.findUnique({
           where: {
             userId_messageId_emoji_type: {
-              userId: user.id,
+              userId: userId,
               messageId,
               emoji,
               type,
@@ -109,7 +107,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           const saved = await prisma.reaction.create({
             data: {
               messageId: messageId,
-              userId: user.id,
+              userId: userId,
               emoji: emoji,
               type: type,
             },
@@ -118,7 +116,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
             type: 'true',
             reaction: {
               ...saved,
-              user: { id: user.id, username: user.username, email: user.email },
+              user: { id: userId, username: username, email: useremail },
             },
             chatroomId: roomId,
           });
@@ -128,7 +126,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
             where: {
               userId_messageId_emoji_type: {
                 messageId: messageId,
-                userId: user.id,
+                userId: userId,
                 emoji: emoji,
                 type: type,
               },
@@ -137,11 +135,11 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           io.to(roomId).emit('newreaction', {
             type: 'false',
             reaction: deleted,
-            user: { id: user.id, username: user.username, email: user.email },
+            user: { id: userId, username: username, email: useremail },
             chatroomId: roomId,
           });
         }
-        console.log(`ユーザ${user.username}`);
+        console.log(`ユーザ${username}`);
       } catch (e) {
         console.log('リアクションエラー', e);
       }
@@ -149,8 +147,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('savechat', async ({ roomId, date, chat, imageUrl, important }) => {
       try {
-        const user = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
-        if (!user) return;
+        
+        const userId = socket.data.userId;
+        const useremail = socket.request.session.useremail; 
+        if (!userId) return;
 
         const datestamp = new Date(normalizeDate(date) + 'T00:00:00.000Z');
         if (isNaN(datestamp)) {
@@ -163,22 +163,22 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           return;
         }
         const member = await prisma.chatmember.findFirst({
-          where: { chatroomId: roomId, userId: user.id, enter: true },
+          where: { chatroomId: roomId, userId, enter: true },
         });
         if (!member) {
           socket.emit('送信失敗', 'チャットルームに参加していません');
           return;
         }
-        console.log(`ユーザ情報${user}`);
+        console.log(`ユーザ情報${useremail}`);
 
         const saved = await prisma.chatmessage.create({
           data: {
             imageUrl,
             content: chat,
-            email: user.email,
+            email: useremail,
             date: datestamp,
             chatroomId: roomId,
-            userId: user.id,
+            userId: userId,
             important,
           },
           include: {
@@ -197,42 +197,45 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           where: {
             chatroomId: roomId,
             enter: true,
-            NOT: { userId: user.id },
+            NOT: { userId: userId },
           },
           select: { userId: true },
         });
 
-        await Promise.all(
-          otherMembers.map(async (m) => {
-            try {
-              const upserted = await prisma.countbatch.upsert({
-                where: {
-                  userId_chatroomId_date: {
+        const BATCH = 5;
+        for (let i = 0; i < otherMembers.length; i += BATCH) {
+          await Promise.all(
+            otherMembers.slice(i, i + BATCH).map(async (m) => {
+              try {
+                const upserted = await prisma.countbatch.upsert({
+                  where: {
+                    userId_chatroomId_date: {
+                      userId: m.userId,
+                      chatroomId: roomId,
+                      date: datestamp,
+                    },
+                  },
+                  update: { count: { increment: 1 }, chatmessageId: { push: saved.id } },
+                  create: {
                     userId: m.userId,
                     chatroomId: roomId,
                     date: datestamp,
+                    count: 1,
+                    chatmessageId: [saved.id],
                   },
-                },
-                update: { count: { increment: 1 }, chatmessageId: { push: saved.id } },
-                create: {
-                  userId: m.userId,
+                });
+                io.to(m.userId).emit('countbatchupdate', {
                   chatroomId: roomId,
-                  date: datestamp,
-                  count: 1,
-                  chatmessageId: [saved.id],
-                },
-              });
-              io.to(m.userId).emit('countbatchupdate', {
-                chatroomId: roomId,
-                date,
-                count: upserted.count,
-              });
-              console.log('通知送信:', m.userId, upserted.count, date);
-            } catch (e) {
-              console.error(`countbatch upsert failed for user ${m.userId}:`, e);
-            }
-          })
-        );
+                  date,
+                  count: upserted.count,
+                });
+                console.log('通知送信:', m.userId, upserted.count, date);
+              } catch (e) {
+                console.error(`countbatch upsert failed for user ${m.userId}:`, e);
+              }
+            })
+          );
+        }
 
         console.log('保存しました:', saved.id);
       } catch (error) {
@@ -285,27 +288,30 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         await prisma.reaction.deleteMany({
           where: { messageId },
         });
-        await Promise.all(
-          affected.map(async (batch) => {
-            const newList = batch.chatmessageId.filter((id) => id !== messageId);
-            const newCount = Math.max(0, batch.count - 1);
+        const DELETE_BATCH = 5;
+        for (let i = 0; i < affected.length; i += DELETE_BATCH) {
+          await Promise.all(
+            affected.slice(i, i + DELETE_BATCH).map(async (batch) => {
+              const newList = batch.chatmessageId.filter((id) => id !== messageId);
+              const newCount = Math.max(0, batch.count - 1);
 
-            await prisma.countbatch.update({
-              where: { id: batch.id },
-              data: {
-                chatmessageId: newList,
+              await prisma.countbatch.update({
+                where: { id: batch.id },
+                data: {
+                  chatmessageId: newList,
+                  count: newCount,
+                },
+              });
+
+              const dateIso = message.date.toISOString().split('T')[0];
+              io.to(batch.userId).emit('countbatchupdate', {
+                chatroomId: roomId,
+                date: dateIso,
                 count: newCount,
-              },
-            });
-
-            const dateIso = message.date.toISOString().split('T')[0];
-            io.to(batch.userId).emit('countbatchupdate', {
-              chatroomId: roomId,
-              date: dateIso,
-              count: newCount,
-            });
-          })
-        );
+              });
+            })
+          );
+        }
 
         const remaining = await prisma.chatmessage.count({
           where: {
@@ -331,12 +337,11 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('/newchat', async ({ chatid }) => {
       console.log('aaaaaaaaaaaaaaaaaa');
-      const email = socket.request.session.logined;
-      if (!email) {
+      const userId = socket.data.userId;
+      if (!userId) {
         socket.emit('error-message', { message: 'ログインしてください' });
         return;
       }
-      const user = await prisma.user.findUnique({ where: { email } });
       try {
         const chatroomdata = await prisma.chatroom.create({
           data: {
@@ -346,16 +351,16 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         await prisma.chatmember.create({
           data: {
             chatroomId: chatroomdata.id,
-            userId: user.id,
+            userId: userId,
             role: 'leader',
             lastOpenedAt: new Date(),
           },
         });
-        io.to(user.id).emit('newchatlist', {
+        io.to(userId).emit('newchatlist', {
           chatid: chatroomdata.chatid,
           id: chatroomdata.id,
         });
-        console.log(`ユーザイアでー${user.id}`);
+        console.log(`ユーザイアでー${userId}`);
         console.log('ddddddddddddddddd');
       } catch (error) {
         console.error('チャット作成エラー:', error);
@@ -365,9 +370,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('chenge-authority', async ({ chatroomId, val }) => {
       try {
-        const myuser = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
+        const userId = socket.data.userId;
+        if (!userId) return;
         const myuserMember = await prisma.chatmember.findFirst({
-          where: { chatroomId, userId: myuser.id },
+          where: { chatroomId, userId },
         });
         if (!myuserMember || myuserMember.role !== 'leader') {
           socket.emit('error-message', { message: '権限がありません' });
@@ -384,11 +390,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     });
     socket.on('chenge-invitation-authority', async ({ chatroomId, val }) => {
       try {
-        const myuser = await prisma.user.findFirst({
-          where: { email: socket.request.session.useremail },
-        });
+        const userId = socket.data.userId;
+        if (!userId) return;
         const mymember = await prisma.chatmember.findFirst({
-          where: { chatroomId, userId: myuser.id },
+          where: { chatroomId, userId },
         });
         if (!mymember || mymember.role !== 'leader') {
           socket.emit('error-message', { message: '権限がありません' });
@@ -435,11 +440,15 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('change-leader', async ({ chatroomId, userEmail }) => {
       try {
-        const myuser = await prisma.user.findFirst({ where: { email: socket.request.session.useremail } });
+        const userId = socket.data.userId;
+        const currentEmail = socket.request.session.useremail || socket.request.session.logined;
+        if (!userId || !currentEmail) {
+          socket.emit('error-message', { message: 'ログインしてください' });
+          return;
+        }
         const isuser = await prisma.user.findUnique({ where: { email: userEmail } });
-        if (!myuser) return;
         const myuserMember = await prisma.chatmember.findFirst({
-          where: { chatroomId, userId: myuser.id },
+          where: { chatroomId, userId },
         });
         if (!myuserMember || myuserMember.role !== 'leader') {
           socket.emit('error-message', { message: '権限がありません' });
@@ -455,7 +464,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           data: { role: 'leader' },
         });
         await prisma.chatmember.update({
-          where: { chatroomId_userId: { chatroomId, userId: myuser.id } },
+          where: { chatroomId_userId: { chatroomId, userId: userId } },
           data: { role: 'member' },
         });
         io.to(chatroomId).emit('newrole', {
@@ -463,16 +472,21 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           newrole: 'leader',
         });
         io.to(chatroomId).emit('newrole', {
-          userEmail: myuser.email,
+          userEmail: currentEmail,
           newrole: 'member',
         });
       } catch (e) {
         console.error('change-leader error:', e);
       }
     });
-    socket.on('favorite-save', async ({ targetEmail, myEmail }) => {
+    socket.on('favorite-save', async ({ targetEmail }) => {
       try {
-        const user = await prisma.user.findUnique({ where: { email: myEmail } });
+        const userId = socket.data.userId;
+        const myEmail = socket.request.session.useremail || socket.request.session.logined;
+        if (!userId || !myEmail) {
+          io.to(socket.id).emit('favorite-added', { success: false, reason: 'unauthorized' });
+          return;
+        }
         const target = await prisma.user.findUnique({ where: { email: targetEmail } });
         if (targetEmail === myEmail) {
           io.to(socket.id).emit('favorite-added', { success: false, reason: 'self' });
@@ -483,7 +497,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           return;
         }
         await prisma.favorite.create({
-          data: { userId: user.id, targetId: target.id },
+          data: { userId: userId, targetId: target.id },
         });
 
         //  送った本人のソケットだけに返す
@@ -503,15 +517,14 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     });
     socket.on('enterning-chatroom', async ({ chatroomId }, cb) => {
       try {
-        const email = socket.request.session?.useremail || socket.request.session?.logined;
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
+        const userId = socket.data.userId;
+        if (!userId) {
           socket.emit('error-message', { message: 'ログインしてください' });
           cb?.({ ok: false, message: 'ログインしてください' });
           return;
         }
         await prisma.chatmember.update({
-          where: { chatroomId_userId: { chatroomId, userId: user.id } },
+          where: { chatroomId_userId: { chatroomId, userId } },
           data: { 
             enter: true ,
             lastOpenedAt: new Date(),
@@ -538,12 +551,11 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('delete-member', async ({ chatroomId, userEmail }) => {
       try {
-        const issuerEmail = socket.request.session?.logined;
-        const issuer = await prisma.user.findUnique({ where: { email: issuerEmail } });
-        if (!issuer) return;
+        const issuerId = socket.data.userId;
+        if (!issuerId) return;
 
         const issuerMember = await prisma.chatmember.findFirst({
-          where: { chatroomId, userId: issuer.id },
+          where: { chatroomId, userId: issuerId },
         });
         if (!issuerMember || issuerMember.role !== 'leader') {
           socket.emit('error-message', { message: '権限がありません' });
@@ -565,13 +577,13 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     });
     socket.on('delete-chatroom', async ({ chatroomId, }) => {
       try{
-        const  user = await prisma.user.findUnique({ where: { email: socket.request.session?.logined } });
-        if(!user){
+        const userId = socket.data.userId;
+        if(!userId){
           socket.emit('error-message',{message:'ログインしてください'});
           return;
         }
         const member=await prisma.chatmember.findFirst({
-          where:{chatroomId,userId:user.id}
+          where:{chatroomId,userId}
         });
         if(!member || member.role !=='leader'){
           socket.emit('error-message',{message:'権限がありません'});
@@ -598,18 +610,17 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('delete-myuser', async ({ chatroomId, userEmail }) => {
       try {
+        const userId = socket.data.userId;
         const currentEmail = socket.request.session?.logined;
-        if (!currentEmail || currentEmail !== userEmail) {
+        if (!userId || !currentEmail || currentEmail !== userEmail) {
           socket.emit('error-message', { message: '権限がありません' });
           return;
         }
-        const user = await prisma.user.findUnique({ where: { email: currentEmail } });
-        if (!user) return;
         await prisma.chatmember.delete({
-          where: { chatroomId_userId: { chatroomId, userId: user.id } },
+          where: { chatroomId_userId: { chatroomId, userId } },
         });
         io.to(chatroomId).emit('member-removed', { chatroomId, userEmail });
-        io.to(user.id).emit('kicked', { chatroomId });
+        io.to(userId).emit('kicked', { chatroomId });
         console.log(`User ${currentEmail} left room ${chatroomId}`);
       } catch (e) {
         console.error('delete-myuser error:', e);
@@ -618,8 +629,9 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     });
 
     socket.on('update-username', async (usernameData) => {
-      const email = socket.request.session.useremail;
-      const user = await prisma.user.findUnique({ where: { email } });
+      const userId = socket.data.userId;
+      const email = socket.request.session.useremail || socket.request.session.logined;
+      if (!userId || !email) return;
       // 文字列かオブジェクトか判定する
       const username =
         typeof usernameData === 'string'
@@ -629,19 +641,19 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
       console.log('名前変更:', username);
 
       const updateuser = await prisma.user.update({
-        where: { id: user.id },
+        where: { id: userId },
         data: { username: username },
       });
       socket.request.session.username = updateuser.username;
       socket.request.session.save();
-      io.to(user.id).emit('reflection-username', updateuser.username);
+      io.to(userId).emit('reflection-username', updateuser.username);
       const [rooms, favoritedBy] = await Promise.all([
         prisma.chatmember.findMany({
-          where: { userId: user.id },
+          where: { userId: userId },
           select: { chatroomId: true },
         }),
         prisma.favorite.findMany({
-          where: { targetId: user.id },
+          where: { targetId: userId },
           include: { user: true },
         }),
       ]);
@@ -649,25 +661,35 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
       //  その全ルーム
       rooms.forEach(({ chatroomId }) => {
         io.to(chatroomId).emit('user-rename', {
-          email: user.email,
+          email: email,
           newName: updateuser.username,
         });
       });
       favoritedBy.forEach(f => {
         io.to(f.user.id).emit('favorite-rename', {
-          targetEmail: user.email,
+          targetEmail: email,
           newName: updateuser.username,
         });
       });
     });
 
     socket.on('friend', async (data) => {
-      const email = session.logined;
-      const user = await prisma.user.findUnique({ where: { email } });
+      const userId = socket.data.userId;
+      const username = socket.request.session.username;
+      const displayName =
+        username ||
+        socket.request.session.useremail ||
+        socket.request.session.logined ||
+        'unknown';
+      if (!userId) return;
       console.log('フレンド', data);
       const friend = await prisma.user.findUnique({ where: { email: data.friendlist } });
       console.log('friend:', JSON.stringify(friend, null, 2));
-      let user1Id = user.id;
+      if (!friend) {
+        socket.emit('追加失敗');
+        return;
+      }
+      let user1Id = userId;
       let user2Id = friend.id;
       if (user1Id > user2Id) {
         [user1Id, user2Id] = [user2Id, user1Id];
@@ -680,10 +702,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
           },
         });
         io.to(friend.id).emit('newfriend', {
-          friendId: user.id,
-          friendname: user.username,
+          friendId: userId,
+          friendname: displayName,
         });
-        io.to(user.id).emit('newfriend', {
+        io.to(userId).emit('newfriend', {
           friendId: friend.id,
           friendname: friend.username,
         });

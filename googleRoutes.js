@@ -210,6 +210,7 @@ function registerGoogleRoutes({
           where: { email: linkedEmail },
         });
         if (regainUser) {
+          req.session.userid = regainUser.id;
           req.session.logined = regainUser.email;
           req.session.username = regainUser.username;
           req.session.useremail = regainUser.email;
@@ -232,6 +233,7 @@ function registerGoogleRoutes({
       }
 
       // ====== ふつうの Google ログイン ======
+      req.session.userid = req.user.id;
       req.session.logined = req.user.email;
       req.session.username = req.user.username;
       req.session.useremail = req.user.email;
@@ -272,6 +274,10 @@ function registerGoogleRoutes({
       res.redirect('/privatecalendar');
     }
   );
+
+  app.get('/auth/google/failure', (req, res) => {
+    return res.redirect('/login');
+  });
 
   app.post('/save-googlecalendar', logincheck, async (req, res) => {
     const email = req.session.logined;

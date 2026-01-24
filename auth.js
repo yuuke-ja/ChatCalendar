@@ -2,6 +2,7 @@
 
 function registerAuthRoutes({
   app,
+  io,
   prisma,
   bcrypt,
   body,
@@ -170,6 +171,7 @@ function registerAuthRoutes({
       req.session.useremail = user.email;
       req.session.logined = user.email;
       req.session.username = user.username;
+      req.session.userid = user.id;
       const inviteContext = await resolveInviteContext(req, res);
       if (inviteContext) {
         const chatroomId = inviteContext.chatroomId;
@@ -188,6 +190,11 @@ function registerAuthRoutes({
   });
 
   app.get('/logout', (req, res) => {
+    const userId = req.session.userid;
+    if (userId && io) {
+      io.to(userId).disconnectSockets(true);
+    }
+    delete req.session.userid;
     delete req.session.useremail;
     delete req.session.logined;
     delete req.session.username;
