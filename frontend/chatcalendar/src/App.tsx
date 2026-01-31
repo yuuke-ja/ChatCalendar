@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import io from "socket.io-client";
+import io, { type Socket } from "socket.io-client";
 import ChatCalendar from "./ChatCalendar.jsx";
 import ChatModal from "./ChatModal.jsx";
 import FriendModal from "./FriendModal.jsx";
@@ -12,40 +12,44 @@ import Header from "./Header.jsx";
 import { fetchWithCsrf } from "./getcsrf";
 import "./App.css";
 
+type chatlist = { id: string; chatid: string; enter?: boolean };
+type participant = { email: string; name: string; username: string; role: Role };
+type Role = "leader" | "subleader" | "member";
+
 export default function App() {
-  const [chatroomId, setChatroomId] = useState(null);
-  const [chatroomName, setChatroomName] = useState("");
-  const [myEmail, setMyEmail] = useState("");
-  const [myUsername, setMyUsername] = useState("");
-  const [chatList, setChatList] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [isClosing, setIsClosing] = useState(false);
-  const [memodate, setMemodate] = useState([]);
-  const socketRef = useRef(null);
-  const [socketReady, setSocketReady] = useState(false);
-  const [participants, setparticipants] = useState([])
-  const [membermodal, setmembermodal] = useState(false)
-  const [friendModalOpen, setFriendModalOpen] = useState(false);
-  const [newChatModalOpen, setNewChatModalOpen] = useState(false);
-  const [countbatch, setcountbatch] = useState({})
-  const [allcountbatch, setallcountbatch] = useState({})
-  const [authorityOn, setAuthorityOn] = useState(false);
-  const [invitationauthorityOn, setinvitationauthorityOn] = useState(false)
-  const [UserinformationOpen, setUserinformationOpen] = useState(false);
-  const [Roomdetails, setRoomdetails] = useState(false)
-  const [viewdatelist, setviewdatelist] = useState(false)
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [listorcalendar, setlistorcalendar] = useState("calendar");
-  const [notentermodal, setnotentermodal] = useState(false);
-  const [enteringchatid, setenteringchatid] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [calendarStartDate, setCalendarStartDate] = useState(() => {
+  const [chatroomId, setChatroomId] = useState<string | null>(null);
+  const [chatroomName, setChatroomName] = useState<string>("");
+  const [myEmail, setMyEmail] = useState<string>("");
+  const [myUsername, setMyUsername] = useState<string>("");
+  const [chatList, setChatList] = useState<chatlist[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+  const [memodate, setMemodate] = useState<string[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+  const [socketReady, setSocketReady] = useState<boolean>(false);
+  const [participants, setparticipants] = useState<participant[]>([]);
+  const [membermodal, setmembermodal] = useState<boolean>(false);
+  const [friendModalOpen, setFriendModalOpen] = useState<boolean>(false);
+  const [newChatModalOpen, setNewChatModalOpen] = useState<boolean>(false);
+  const [countbatch, setcountbatch] = useState<Record<string, number>>({});
+  const [allcountbatch, setallcountbatch] = useState<Record<string, Record<string, number>>>({});
+  const [authorityOn, setAuthorityOn] = useState<boolean>(false);
+  const [invitationauthorityOn, setinvitationauthorityOn] = useState<boolean>(false);
+  const [UserinformationOpen, setUserinformationOpen] = useState<boolean>(false);
+  const [Roomdetails, setRoomdetails] = useState<boolean>(false);
+  const [viewdatelist, setviewdatelist] = useState<boolean>(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [listorcalendar, setlistorcalendar] = useState<"calendar" | "list">("calendar");
+  const [notentermodal, setnotentermodal] = useState<boolean>(false);
+  const [enteringchatid, setenteringchatid] = useState<chatlist | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [calendarStartDate, setCalendarStartDate] = useState<Date>(() => {
     // localStorage から保存された日付を復元
     const savedDate = localStorage.getItem("calendarStartDate");
     return savedDate ? new Date(savedDate) : new Date();
   });
-  const moveCalendarBlock = (delta) => {
+  const moveCalendarBlock = (delta: number) => {
     setCalendarStartDate((prev) => {
       const d = new Date(prev);
       d.setMonth(d.getMonth() + delta);
@@ -58,20 +62,20 @@ export default function App() {
     if (savedDate) setCalendarStartDate(new Date(savedDate));
   }, []);
 
-  const chatroomIdRef = useRef(null);
+  const chatroomIdRef = useRef<string | null>(null);
   useEffect(() => {
     chatroomIdRef.current = chatroomId;
   }, [chatroomId]);
-  const selectedDateRef = useRef(null);
+  const selectedDateRef = useRef<string | null>(null);
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
-  const pendingRequestRef = useRef(0);
+  const pendingRequestRef = useRef<number>(0);
   const myrole = participants.find(p => p.email === myEmail)?.role || "member";
   const canSeeinvitationButton = invitationauthorityOn
     ? (myrole === "leader" || myrole === "subleader")
     : true;
-  const fetchAbortRef = useRef(null);
+  const fetchAbortRef = useRef<AbortController | null>(null);
   //リクエストの中断
   const cancelPendingSelect = () => {
     pendingRequestRef.current += 1;
@@ -80,7 +84,7 @@ export default function App() {
       fetchAbortRef.current = null;
     }
   };
-  const getRoleText = (role) => {
+  const getRoleText = (role: Role) => {
     switch (role) {
       case 'leader':
         return 'リーダー';
@@ -109,14 +113,14 @@ export default function App() {
 
 
 
-  function makesubleader(email) {
+  function makesubleader(email: string) {
     socketRef.current.emit("make-subleader", { chatroomId, userEmail: email });
   }
-  function changeleader(email) {
+  function changeleader(email: string) {
     if (!window.confirm("本当にリーダーにしますか？")) return;
     socketRef.current.emit("change-leader", { chatroomId, userEmail: email });
   }
-  function deleteuser(email) {
+  function deleteuser(email: string) {
     if (!window.confirm("本当にこのユーザを削除しますか？")) return
     socketRef.current.emit("delete-member", { chatroomId, userEmail: email })
   }
@@ -161,7 +165,7 @@ export default function App() {
     setCalendarStartDate(today);
     localStorage.setItem("calendarStartDate", today.toISOString());
   };
-  const handleselectchatroom = (chat) => {
+  const handleselectchatroom = (chat: chatlist) => {
     if (!chat) return;
     if (chat.enter === false) {
       cancelPendingSelect();
@@ -224,7 +228,7 @@ export default function App() {
       alert("拒否に失敗しました");
     }
   }
-  const selectChatroom = async (chatId) => {
+  const selectChatroom = async (chatId: string) => {
     const seq = ++pendingRequestRef.current; // このリクエストが最新か判定するための番号
     // 即座に選択を反映させる
     setChatroomId(chatId);

@@ -4,9 +4,13 @@ const { chat } = require("googleapis/build/src/apis/chat");
 
 function registerSocketHandlers({ io, prisma, normalizeDate }) {
   function socketlogincheck(socket, next) {
-    if (!socket.request.session || !socket.request.session.logined) {
+    const session = socket.request.session;
+    if (!session || !session.logined) {
       next(new Error('ログインしてください'));
     } else {
+      socket.data.userId = session.userid;
+      socket.data.userEmail = session.useremail || session.logined;
+      socket.data.username = session.username;
       next();
     }
   }
@@ -14,15 +18,14 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
   io.on('connection', async (socket) => {
     console.log('新しいSocket接続:', socket.id);
-    const session = socket.request.session;
-    if (!session || !session.logined || !session.userid) {
+    const userId = socket.data.userId;
+    const userEmail = socket.data.userEmail;
+    if (!userId || !userEmail) {
       console.log('セッションなし、またはログインしていません');
       return;
     }
-    const userId = session.userid;
-    socket.data.userId = userId;
 
-    console.log('セッションあり、ログインユーザー:', session.logined);
+    console.log('セッションあり、ログインユーザー:', userEmail);
     console.log('ユーザー接続');
     socket.join(userId);
     console.log(`userId: ${userId}`);
@@ -90,8 +93,8 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
       try {
         const userId = socket.data.userId;
         if (!userId) return;
-        const useremail = socket.request.session.useremail;
-        const username = socket.request.session.username;
+        const useremail = socket.data.userEmail;
+        const username = socket.data.username;
         console.log(`ユーザ${username}`);
         const check = await prisma.reaction.findUnique({
           where: {
@@ -149,7 +152,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
       try {
         
         const userId = socket.data.userId;
-        const useremail = socket.request.session.useremail; 
+        const useremail = socket.data.userEmail; 
         if (!userId) return;
 
         const datestamp = new Date(normalizeDate(date) + 'T00:00:00.000Z');
@@ -441,7 +444,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     socket.on('change-leader', async ({ chatroomId, userEmail }) => {
       try {
         const userId = socket.data.userId;
-        const currentEmail = socket.request.session.useremail || socket.request.session.logined;
+        const currentEmail = socket.data.userEmail;
         if (!userId || !currentEmail) {
           socket.emit('error-message', { message: 'ログインしてください' });
           return;
@@ -482,7 +485,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     socket.on('favorite-save', async ({ targetEmail }) => {
       try {
         const userId = socket.data.userId;
-        const myEmail = socket.request.session.useremail || socket.request.session.logined;
+        const myEmail = socket.data.userEmail;
         if (!userId || !myEmail) {
           io.to(socket.id).emit('favorite-added', { success: false, reason: 'unauthorized' });
           return;
@@ -611,7 +614,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
     socket.on('delete-myuser', async ({ chatroomId, userEmail }) => {
       try {
         const userId = socket.data.userId;
-        const currentEmail = socket.request.session?.logined;
+        const currentEmail = socket.data.userEmail;
         if (!userId || !currentEmail || currentEmail !== userEmail) {
           socket.emit('error-message', { message: '権限がありません' });
           return;
@@ -630,7 +633,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('update-username', async (usernameData) => {
       const userId = socket.data.userId;
-      const email = socket.request.session.useremail || socket.request.session.logined;
+      const email = socket.data.userEmail;
       if (!userId || !email) return;
       // 文字列かオブジェクトか判定する
       const username =
@@ -644,6 +647,7 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
         where: { id: userId },
         data: { username: username },
       });
+      socket.data.username = updateuser.username;
       socket.request.session.username = updateuser.username;
       socket.request.session.save();
       io.to(userId).emit('reflection-username', updateuser.username);
@@ -675,11 +679,10 @@ function registerSocketHandlers({ io, prisma, normalizeDate }) {
 
     socket.on('friend', async (data) => {
       const userId = socket.data.userId;
-      const username = socket.request.session.username;
+      const username = socket.data.username;
       const displayName =
         username ||
-        socket.request.session.useremail ||
-        socket.request.session.logined ||
+        socket.data.userEmail ||
         'unknown';
       if (!userId) return;
       console.log('フレンド', data);
