@@ -11,6 +11,7 @@ const session = require('express-session');
 const crypto = require('crypto');
 const csrf = require('csurf');   
 const cookieParser = require('cookie-parser');
+const { performance } = require('perf_hooks');
 app.use(cookieParser());
 
 
@@ -64,6 +65,17 @@ io.use((socket, next) => {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+const slowReqMs = Number(process.env.SLOW_REQ_MS || 800);
+app.use((req, res, next) => {
+  const start = performance.now();
+  res.on('finish', () => {
+    const ms = performance.now() - start;
+    if (ms >= slowReqMs) {
+      console.warn(`[slow] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms.toFixed(1)}ms`);
+    }
+  });
+  next();
+});
 app.use(sessionsocket); 
 app.use(passport.initialize());
 app.use(passport.session());
