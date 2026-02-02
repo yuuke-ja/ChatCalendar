@@ -77,6 +77,15 @@ app.use((req, res, next) => {
   next();
 });
 app.use(sessionsocket); 
+app.use((req, res, next) => {
+  const sessionData = req.session;
+  if (sessionData) {
+    req.userId = sessionData.userid;
+    req.userEmail = sessionData.useremail || sessionData.logined;
+    req.username = sessionData.username;
+  }
+  next();
+});
 app.use(passport.initialize());
 app.use(passport.session());
 const csrfProtection = csrf({ cookie:{
@@ -212,18 +221,22 @@ async function loginchatcheck(req, res, next) {
 
   if (!roomId) return res.redirect('/privatecalendar');
 
-  const email = req.session.logined;
-  if (!email) return res.redirect('/login');
-
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return res.redirect('/login');
+  const email = req.userEmail || req.session.logined || req.session.useremail;
+  let userId = req.userId || req.session.userid;
+  if (!userId && !email) return res.redirect('/login');
+  if (!userId && email) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.redirect('/login');
+    userId = user.id;
+  }
 
   const member = await prisma.chatmember.findFirst({
-    where: { chatroomId: roomId, userId: user.id },
+    where: { chatroomId: roomId, userId: userId },
   });
   if (!member) return res.redirect('/privatecalendar');
 
   req.chatroomId = roomId;
+  req.userId = userId;
   next();
 }
 
